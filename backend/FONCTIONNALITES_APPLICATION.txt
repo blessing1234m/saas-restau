@@ -1,0 +1,567 @@
+================================================================================
+                    RESTAURANT SAAS - DOCUMENTATION COMPLÈTE
+                        Fonctionnalités & Permissions par Rôle
+================================================================================
+
+DATE: Janvier 2026
+VERSION: 1.0
+
+## Installation
+
+### Prérequis
+
+- Node.js >= 18.x
+- PostgreSQL 12+
+- npm 
+
+### Étapes
+
+# 1. Cloner le repository
+
+# 2. Installer les dépendances
+npm install
+
+# 3. Copier le fichier .env
+cp .env.example .env
+
+# 4. Configurer les variables d'environnement
+# Éditer .env avec vos paramètres de DB
+
+# 5. Exécuter les migrations Prisma
+npx prisma migrate dev --name init
+
+# 6. Amorcer la base de données (créer SuperAdmin)
+npm run prisma:seed
+
+# 7. Démarrer le serveur
+npm run start:dev
+```
+================================================================================
+1. ARCHITECTURE GÉNÉRALE
+================================================================================
+
+L'application est une plateforme SaaS de gestion de restaurants avec une 
+architecture multi-tenant, permettant à plusieurs établissements de coexister 
+de manière isolée et sécurisée.
+
+Technologie: NestJS + Prisma + PostgreSQL
+Port: 3000
+Authentification: JWT Bearer Token
+
+================================================================================
+2. RÔLES UTILISATEURS
+================================================================================
+
+Il existe 3 rôles principaux dans l'application:
+
+1. SUPER_ADMIN
+   - Administrateur système global
+   - Gère tous les établissements et tous les utilisateurs
+   - Pas lié à un établissement spécifique
+
+2. ADMIN_ETABLISSEMENT
+   - Administrateur d'un établissement spécifique
+   - Gère la configuration complète de son établissement
+   - Crée et gère les serveurs
+   - Peut gérer plusieurs sous-restaurants (sections)
+
+3. SERVEUR
+   - Utilisateur de terrain
+   - Accès limité aux commandes et tables
+   - Prend les commandes pour les clients
+   - Gère le statut des commandes
+
+================================================================================
+3. FLUX D'AUTHENTIFICATION
+================================================================================
+
+Endpoint: POST /auth/login
+Body: { codeAgent: string, motDePasse: string }
+
+Response: { access_token: string }
+
+Structure du JWT:
+{
+  sub: utilisateurId,
+  codeAgent: string,
+  role: Role,
+  iat: timestamp,
+  exp: timestamp
+}
+
+Sécurité:
+- JWT obligatoire pour tous les endpoints (sauf login)
+- Vérification du rôle sur chaque requête
+- Vérification que l'établissement est actif (guards)
+- Isolation des données par établissement
+
+================================================================================
+4. SUPER_ADMIN - PERMISSIONS COMPLÈTES
+================================================================================
+
+Endpoints accessibles: /super-admin/*
+
+4.1 GESTION DES ÉTABLISSEMENTS
+────────────────────────────────
+
+✅ CRÉER un établissement
+   POST /super-admin/etablissements
+   Body: { nom: string, ville: string, telephone?: string, email?: string }
+
+✅ LISTER tous les établissements
+   GET /super-admin/etablissements
+
+✅ VOIR détails d'un établissement
+   GET /super-admin/etablissements/:id
+
+✅ MODIFIER un établissement
+   PUT /super-admin/etablissements/:id
+   Body: { nom?: string, ville?: string, telephone?: string, email?: string }
+
+✅ ACTIVER/DÉSACTIVER un établissement
+   PATCH /super-admin/changer-etat-etablissements/:id
+
+✅ SUPPRIMER un établissement
+   DELETE /super-admin/etablissements/:id
+
+4.2 GESTION DES ADMINISTRATEURS D'ÉTABLISSEMENT
+──────────────────────────────────────────────
+
+✅ CRÉER un admin d'établissement
+   POST /super-admin/admin-etablissements
+   Body: { 
+     codeAgent: string, 
+     motDePasse: string, 
+     etablissementId: string 
+   }
+
+✅ LISTER tous les admins
+   GET /super-admin/admin-etablissements
+
+✅ VOIR détails d'un admin
+   GET /super-admin/admin-etablissements/:id
+
+✅ MODIFIER un admin
+   PUT /super-admin/admin-etablissements/:id
+
+✅ ACTIVER/DÉSACTIVER un admin
+   PATCH /super-admin/changer-etat-admin/:id
+
+✅ SUPPRIMER un admin
+   DELETE /super-admin/admin-etablissements/:id
+
+================================================================================
+5. ADMIN_ETABLISSEMENT - PERMISSIONS LOCALES
+================================================================================
+
+Endpoints: /admin-etablissements/
+Restrictions: 
+- Accès limité à SON établissement uniquement
+- L'établissementId est récupéré automatiquement du JWT
+- Pas besoin de passer l'ID en URL
+
+5.1 GESTION DES SOUS-RESTAURANTS
+────────────────────────────────
+
+Un "sous-restaurant" est une section/zone du restaurant (ex: Terrasse, Salle intérieure)
+
+✅ CRÉER un sous-restaurant
+   POST /admin-etablissements/sous-restaurants
+   Body: { nom: string, description?: string }
+
+✅ LISTER ses sous-restaurants
+   GET /admin-etablissements/sous-restaurants
+
+✅ VOIR détails d'un sous-restaurant
+   GET /admin-etablissements/sous-restaurants/:sousRestaurantId
+
+✅ MODIFIER un sous-restaurant
+   PUT /admin-etablissements/sous-restaurants/:sousRestaurantId
+   Body: { nom?: string, description?: string }
+
+✅ SUPPRIMER un sous-restaurant
+   DELETE /admin-etablissements/sous-restaurants/:sousRestaurantId
+
+5.2 GESTION DES TABLES
+───────────────────────
+
+Les tables sont liées à un sous-restaurant
+
+✅ CRÉER une table
+   POST /admin-etablissements/sous-restaurants/:sousRestaurantId/tables
+   Body: { numero: number (minimum 1) }
+
+✅ LISTER les tables d'un sous-restaurant
+   GET /admin-etablissements/sous-restaurants/:sousRestaurantId/tables
+
+✅ MODIFIER une table
+   PUT /admin-etablissements/sous-restaurants/:sousRestaurantId/tables/:tableId
+   Body: { numero?: number }
+
+✅ SUPPRIMER une table
+   DELETE /admin-etablissements/sous-restaurants/:sousRestaurantId/tables/:tableId
+
+5.3 GESTION DES CATÉGORIES DE PLATS
+──────────────────────────────────
+
+Les catégories organisent les plats (ex: Pizzas,Desserts,Boissons)
+
+✅ CRÉER une catégorie
+   POST /admin-etablissements/sous-restaurants/:sousRestaurantId/categories
+   Body: { 
+     nom: string, 
+     description?: string, 
+     ordre?: number,
+     photoAffichage?: string (base64)
+   }
+
+✅ LISTER les catégories
+   GET /admin-etablissements/sous-restaurants/:sousRestaurantId/categories
+
+✅ MODIFIER une catégorie
+   PUT /admin-etablissements/sous-restaurants/:sousRestaurantId/categories/:categorieId
+   Body: { nom?: string, description?: string, ordre?: number, photoAffichage?: string }
+
+✅ SUPPRIMER une catégorie
+   DELETE /admin-etablissements/sous-restaurants/:sousRestaurantId/categories/:categorieId
+
+5.4 GESTION DES PLATS
+──────────────────────
+
+Les plats sont liés à une catégorie et peuvent avoir jusqu'à 3 images
+
+✅ CRÉER un plat
+   POST /admin-etablissements/sous-restaurants/:sousRestaurantId/categories/:categorieId/plats
+   Body: { 
+     nom: string, 
+     description?: string, 
+     prix: number,
+     images?: string[] (max 3 images en base64)
+   }
+
+✅ LISTER les plats d'une catégorie
+   GET /admin-etablissements/sous-restaurants/:sousRestaurantId/categories/:categorieId/plats
+
+✅ VOIR détails d'un plat
+   GET /admin-etablissements/sous-restaurants/:sousRestaurantId/categories/:categorieId/plats/:platId
+
+✅ MODIFIER un plat
+   PUT /admin-etablissements/sous-restaurants/:sousRestaurantId/categories/:categorieId/plats/:platId
+   Body: { nom?: string, description?: string, prix?: number }
+
+✅ SUPPRIMER un plat
+   DELETE /admin-etablissements/sous-restaurants/:sousRestaurantId/categories/:categorieId/plats/:platId
+
+5.5 GESTION DES SERVEURS
+─────────────────────────
+
+Créer et gérer les comptes serveurs de son établissement
+
+✅ CRÉER un serveur
+   POST /admin-etablissements/serveurs
+   Body: { codeAgent: string, motDePasse: string }
+
+✅ LISTER ses serveurs
+   GET /admin-etablissements/serveurs
+
+✅ ACTIVER/DÉSACTIVER un serveur
+   PATCH /admin-etablissements/serveurs/:serveurId/changer-etat
+
+✅ SUPPRIMER un serveur
+   DELETE /admin-etablissements/serveurs/:serveurId
+
+================================================================================
+6. SERVEUR - PERMISSIONS LIMITÉES
+================================================================================
+
+Endpoints accessibles: /commandes/*
+Restrictions:
+- Accès limité aux commandes
+- Peut voir les tables et menus de son établissement
+- Accès limité à l'établissement du JWT uniquement
+
+6.1 GESTION DES COMMANDES
+──────────────────────────
+
+✅ CRÉER une commande
+   POST /commandes
+   Body: { sousRestaurantId: string, tableId: string }
+
+✅ LISTER ses commandes
+   GET /commandes
+
+✅ VOIR détails d'une commande
+   GET /commandes/:commandeId
+
+✅ MODIFIER le statut d'une commande
+   PATCH /commandes/:commandeId/statut
+   Body: { statut: "EN_ATTENTE" | "EN_PREPARATION" | "SERVIE" }
+
+✅ MODIFIER une commande
+   PUT /commandes/:commandeId
+
+✅ SUPPRIMER une commande
+   DELETE /commandes/:commandeId
+
+6.2 GESTION DES ITEMS DE COMMANDE
+──────────────────────────────────
+
+✅ AJOUTER un item à une commande
+   POST /commandes/:commandeId/items
+   Body: { platId: string, quantite: number }
+
+✅ MODIFIER la quantité d'un item
+   PUT /commandes/:commandeId/items/:itemId/quantite
+   Body: { quantite: number }
+
+✅ SUPPRIMER un item d'une commande
+   DELETE /commandes/:commandeId/items/:itemId
+
+❌ NE PEUT PAS:
+   - Créer/modifier/supprimer des sous-restaurants
+   - Créer/modifier/supprimer des tables
+   - Créer/modifier/supprimer des catégories
+   - Créer/modifier/supprimer des plats
+   - Créer/modifier des serveurs
+   - Accéder à /admin-etablissements
+   - Accéder à /super-admin
+
+================================================================================
+7. SÉCURITÉ & ISOLATION
+================================================================================
+
+7.1 PROTECTIONS APPLIQUÉES
+──────────────────────────
+
+✅ Authentification JWT obligatoire
+   - Tous les endpoints (sauf /auth/login) nécessitent un JWT valide
+   - Vérification de la signature et de l'expiration
+
+✅ Vérification des rôles (RoleGuard)
+   - Chaque endpoint vérifie que l'utilisateur a le bon rôle
+   - Impossible d'accéder à un endpoint non autorisé
+
+✅ Vérification de l'établissement actif (EtablissementActifGuard)
+   - Vérifie que l'établissement n'est pas désactivé
+   - Appliquée à ADMIN_ETABLISSEMENT et SERVEUR
+
+✅ Isolation des données
+   - ADMIN_ETABLISSEMENT ne peut accéder qu'à SON établissement
+   - Les établissementIds sont automatiquement récupérés du JWT
+   - Impossible de manipuler l'ID en URL
+
+✅ Validation des DTOs
+   - Validation des entrées utilisateur
+   - Vérification des types et des contraintes (min, max, required)
+
+7.2 MÉCANISMES DE CONTRÔLE
+──────────────────────────
+
+- Hashage des mots de passe (bcryptjs)
+- Unicité des codes agents
+- Vérification des doublons avant création
+- Vérification que les ressources appartiennent à l'établissement
+- Cascade delete pour maintenir l'intégrité
+
+================================================================================
+8. MODÈLE DE DONNÉES
+================================================================================
+
+UTILISATEUR
+├── id: String (PK)
+├── codeAgent: String (UNIQUE)
+├── motDePasse: String (hashed)
+├── role: Role
+├── estActif: Boolean
+└── createdAt, updatedAt
+
+ÉTABLISSEMENT
+├── id: String (PK)
+├── nom: String
+├── ville: String
+├── telephone?: String
+├── email?: String
+├── estActif: Boolean
+└── createdAt, updatedAt
+
+ADMIN_ÉTABLISSEMENT
+├── id: String (PK)
+├── utilisateurId: String (UNIQUE, FK)
+├── établissementId: String (FK)
+└── createdAt, updatedAt
+
+SERVEUR
+├── id: String (PK)
+├── utilisateurId: String (UNIQUE, FK)
+├── établissementId: String (FK)
+└── createdAt, updatedAt
+
+SOUS_RESTAURANT
+├── id: String (PK)
+├── nom: String
+├── description?: String
+├── établissementId: String (FK)
+├── estActif: Boolean
+├── UNIQUE(établissementId, nom)
+└── createdAt, updatedAt
+
+TABLE
+├── id: String (PK)
+├── numero: Number
+├── sousRestaurantId: String (FK)
+└── createdAt, updatedAt
+
+CATÉGORIE
+├── id: String (PK)
+├── nom: String
+├── description?: String
+├── ordre: Number
+├── sousRestaurantId: String (FK)
+├── photoAffichage?: Bytea
+├── photoTypeContenu?: String
+├── photoNomFichier?: String
+├── photoTaille?: Number
+└── createdAt, updatedAt
+
+PLAT
+├── id: String (PK)
+├── nom: String
+├── description?: String
+├── prix: Decimal
+├── categorieId: String (FK)
+└── createdAt, updatedAt
+
+IMAGE_PLAT
+├── id: String (PK)
+├── donnees: Bytea
+├── typeContenu: String
+├── nomFichier: String
+├── taille: Number
+├── ordre: Number
+├── platId: String (FK)
+└── createdAt, updatedAt
+
+COMMANDE
+├── id: String (PK)
+├── tableId: String (FK)
+├── sousRestaurantId: String (FK)
+├── statut: StatutCommande (EN_ATTENTE, EN_PREPARATION, SERVIE)
+└── createdAt, updatedAt
+
+ITEM_COMMANDE
+├── id: String (PK)
+├── commandeId: String (FK)
+├── platId: String (FK)
+├── quantite: Number
+└── createdAt, updatedAt
+
+================================================================================
+9. FLOW UTILISATEUR TYPIQUE
+================================================================================
+
+SCÉNARIO 1: Configuration initiale par Super Admin
+─────────────────────────────────────────────────
+
+1. Super Admin crée un établissement
+   POST /super-admin/etablissements
+   → Établissement créé
+
+2. Super Admin crée un admin pour cet établissement
+   POST /super-admin/admin-etablissements
+   → Admin créé avec identifiants
+
+SCÉNARIO 2: Configuration du menu par Admin d'établissement
+──────────────────────────────────────────────────────────
+
+1. Admin se connecte
+   POST /auth/login
+   → JWT obtenu
+
+2. Admin crée un sous-restaurant (Terrasse)
+   POST /admin-etablissements/sous-restaurants
+   → Sous-restaurant créé
+
+3. Admin ajoute des tables à la terrasse
+   POST /admin-etablissements/sous-restaurants/{id}/tables
+   → 5 tables créées
+
+4. Admin crée des catégories de plats
+   POST /admin-etablissements/sous-restaurants/{id}/categories
+   → Catégories: Entrées, Plats, Desserts
+
+5. Admin ajoute des plats à chaque catégorie
+   POST /admin-etablissements/sous-restaurants/{id}/categories/{id}/plats
+   → Plats ajoutés avec descriptions et prix
+
+6. Admin crée des comptes serveurs
+   POST /admin-etablissements/serveurs
+   → Serveurs créés
+
+SCÉNARIO 3: Prise de commande par Serveur
+──────────────────────────────────────────
+
+1. Serveur se connecte
+   POST /auth/login
+   → JWT obtenu
+
+2. Serveur crée une commande pour la table 3
+   POST /commandes
+   → Commande créée
+
+3. Serveur ajoute des plats à la commande
+   POST /commandes/{id}/items
+   → Items ajoutés
+
+4. Serveur valide la commande
+   PATCH /commandes/{id}/statut → EN_PREPARATION
+   → Cuisine notifiée
+
+5. Serveur met à jour le statut
+   PATCH /commandes/{id}/statut → SERVIE
+   → Commande marquée comme servie
+
+================================================================================
+10. ERREURS COURANTES & RESTRICTIONS
+================================================================================
+
+❌ Erreur 401: Unauthorized
+   Cause: JWT manquant ou expiré
+   Solution: Se connecter avec /auth/login
+
+❌ Erreur 403: Forbidden
+   Cause: Rôle insuffisant ou établissement inactif
+   Solution: Utiliser le bon rôle, vérifier l'état de l'établissement
+
+❌ Erreur 400: Bad Request
+   Cause: Données invalides ou manquantes
+   Solution: Vérifier la structure du body
+
+❌ Erreur 404: Not Found
+   Cause: Ressource introuvable ou appartient à un autre établissement
+   Solution: Vérifier l'ID et les permissions
+
+================================================================================
+11. GUIDES DE DÉPLOIEMENT
+================================================================================
+
+Environnement de développement:
+npm run start:dev
+
+Environnement de production:
+npm run build
+npm run start:prod
+
+Base de données:
+npx prisma migrate dev       # Appliquer les migrations
+npx prisma db seed           # Seed les données initiales
+npx prisma studio           # Interface graphique Prisma
+
+================================================================================
+12. CONTACTS & SUPPORT
+================================================================================
+
+Version: 1.0
+Date: Janvier 2026
+Système: NestJS + Prisma + PostgreSQL
+
+================================================================================

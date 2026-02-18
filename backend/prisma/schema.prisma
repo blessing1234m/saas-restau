@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Configuration du seed
+// prisma: seed = ["node", "-r", "ts-node/register", "prisma/seed.ts"]
+
+// ÉNUMÉRATION DES RÔLES
+enum Role {
+  SUPER_ADMIN
+  ADMIN_ETABLISSEMENT
+  SERVEUR
+}
+
+// ÉNUMÉRATION DES STATUTS DE COMMANDE
+enum StatutCommande {
+  EN_ATTENTE
+  EN_PREPARATION
+  SERVIE
+}
+
+// MODÈLES DE BASE
+
+// Utilisateur (tous les rôles)
+model Utilisateur {
+  id                    String                @id @default(cuid())
+  codeAgent             String                @unique
+  motDePasse            String
+  role                  Role
+  estActif              Boolean               @default(true)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  adminEtablissement    AdminEtablissement?
+  serveur               Serveur?
+
+  @@index([codeAgent])
+}
+
+// ENTITÉS MULTI-TENANT 
+
+// Établissement 
+model Etablissement {
+  id                    String                @id @default(cuid())
+  nom                   String
+  ville                 String
+  telephone             String?
+  email                 String?
+  estActif              Boolean               @default(true)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  adminEtablissements   AdminEtablissement[]
+  sousRestaurants       SousRestaurant[]
+  serveurs              Serveur[]
+
+  @@index([nom])
+}
+
+// Admin d'établissement
+model AdminEtablissement {
+  id                    String                @id @default(cuid())
+  utilisateurId         String                @unique
+  etablissementId       String
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  utilisateur           Utilisateur           @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  etablissement         Etablissement         @relation(fields: [etablissementId], references: [id], onDelete: Cascade)
+
+  @@index([etablissementId])
+}
+
+// ========== RESTAURANT ==========
+
+// Sous-restaurant
+model SousRestaurant {
+  id                    String                @id @default(cuid())
+  nom                   String
+  description           String?
+  etablissementId       String
+  estActif              Boolean               @default(true)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  etablissement         Etablissement         @relation(fields: [etablissementId], references: [id], onDelete: Cascade)
+  tables                Table[]
+  categories            Categorie[]
+  commandes             Commande[]
+
+  @@unique([etablissementId, nom])
+  @@index([etablissementId])
+}
+
+// Table du restaurant
+model Table {
+  id                    String                @id @default(cuid())
+  numero                Int
+  sousRestaurantId      String
+  estActive             Boolean               @default(true)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  sousRestaurant        SousRestaurant        @relation(fields: [sousRestaurantId], references: [id], onDelete: Cascade)
+  commandes             Commande[]
+
+  @@unique([sousRestaurantId, numero])
+  @@index([sousRestaurantId])
+}
+
+// ========== MENU ==========
+
+// Catégorie de menu
+model Categorie {
+  id                    String                @id @default(cuid())
+  nom                   String
+  description           String?
+  photoAffichage        Bytes?                // Données binaires de la photo
+  photoTypeContenu      String?               // Type MIME (ex: image/jpeg)
+  photoNomFichier       String?               // Nom du fichier original
+  photoTaille           Int?                  // Taille en bytes
+  ordre                 Int                   @default(0)
+  sousRestaurantId      String
+  estActive             Boolean               @default(true)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  sousRestaurant        SousRestaurant        @relation(fields: [sousRestaurantId], references: [id], onDelete: Cascade)
+  plats                 Plat[]
+
+  @@unique([sousRestaurantId, nom])
+  @@index([sousRestaurantId])
+}
+
+// Plat du menu
+model Plat {
+  id                    String                @id @default(cuid())
+  nom                   String
+  description           String?
+  prix                  Float
+  categorieId           String
+  estActif              Boolean               @default(true)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  categorie             Categorie             @relation(fields: [categorieId], references: [id], onDelete: Cascade)
+  images                ImagePlat[]
+  items                 ItemCommande[]
+
+  @@index([categorieId])
+}
+
+// Image du plat
+model ImagePlat {
+  id                    String                @id @default(cuid())
+  donnees               Bytes                 // Données binaires de l'image
+  typeContenu           String                // Type MIME (ex: image/jpeg, image/png)
+  nomFichier            String                // Nom original du fichier
+  taille                Int                   // Taille en bytes
+  ordre                 Int                   @default(0)
+  platId                String
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  plat                  Plat                  @relation(fields: [platId], references: [id], onDelete: Cascade)
+
+  @@index([platId])
+}
+
+// ========== SERVEUR ==========
+
+// Serveur
+model Serveur {
+  id                    String                @id @default(cuid())
+  utilisateurId         String                @unique
+  etablissementId       String
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  utilisateur           Utilisateur           @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  etablissement         Etablissement         @relation(fields: [etablissementId], references: [id], onDelete: Cascade)
+  commandes             Commande[]
+
+  @@index([etablissementId])
+}
+
+// ========== COMMANDES ==========
+
+// Commande
+model Commande {
+  id                    String                @id @default(cuid())
+  tableId               String
+  sousRestaurantId      String
+  serveurId             String
+  statut                StatutCommande        @default(EN_ATTENTE)
+  totalCommande         Float                 @default(0)
+  notes                 String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  table                 Table                 @relation(fields: [tableId], references: [id], onDelete: Restrict)
+  sousRestaurant        SousRestaurant        @relation(fields: [sousRestaurantId], references: [id], onDelete: Restrict)
+  serveur               Serveur               @relation(fields: [serveurId], references: [id], onDelete: Restrict)
+  items                 ItemCommande[]
+
+  @@index([tableId])
+  @@index([sousRestaurantId])
+  @@index([serveurId])
+  @@index([statut])
+}
+
+// Item de commande
+model ItemCommande {
+  id                    String                @id @default(cuid())
+  commandeId            String
+  platId                String
+  quantite              Int                   @default(1)
+  prixUnitaire          Float                 // Prix figé au moment de la commande
+  sousTotal             Float                 // quantite * prixUnitaire
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  commande              Commande              @relation(fields: [commandeId], references: [id], onDelete: Cascade)
+  plat                  Plat                  @relation(fields: [platId], references: [id], onDelete: Restrict)
+
+  @@index([commandeId])
+  @@index([platId])
+}
