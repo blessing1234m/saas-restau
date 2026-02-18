@@ -206,7 +206,7 @@ class _AdminEtablissementManagementScreenState extends State<AdminEtablissementM
               ),
               IconButton(
                 icon: Icon(admin.estActif ? Icons.block : Icons.check_circle),
-                color: admin.estActif ? Colors.orange : Colors.green,
+                color: admin.estActif ? Colors.orange : Colors.red,
                 onPressed: () async {
                   await superAdminProvider.toggleAdminState(admin.id, authProvider.token!);
                   if (mounted && superAdminProvider.errorMessage == null) {

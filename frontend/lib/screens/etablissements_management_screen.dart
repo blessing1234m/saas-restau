@@ -346,13 +346,15 @@ class _EtablissementsManagementScreenState
                           );
                           if (mounted &&
                               superAdminProvider.errorMessage == null) {
+                            // ✅ Message adapté selon l'état
+                            String message = etab.estActif
+                                ? 'Établissement désactivé (admins aussi désactivés)'
+                                : 'Établissement activé';
+                            
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(
-                                  etab.estActif
-                                      ? 'Établissement désactivé'
-                                      : 'Établissement activé',
-                                ),
+                                content: Text(message),
+                                duration: const Duration(seconds: 3),
                               ),
                             );
                           }

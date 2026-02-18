@@ -186,6 +186,7 @@ class SuperAdminProvider extends ChangeNotifier {
   }
 
   /// Toggle établissement state
+  /// Si établissement devient inactif, tous ses admins sont désactivés
   Future<bool> toggleEtablissementState(String id, String token) async {
     try {
       final updated = await ApiService.toggleEtablissementState(id, token);
@@ -193,6 +194,28 @@ class SuperAdminProvider extends ChangeNotifier {
       if (index != -1) {
         _etablissements[index] = updated;
       }
+      
+      // ✅ Si établissement devient INACTIF, désactiver tous ses admins
+      if (!updated.estActif) {
+        // Récupérer les admins actifs de cet établissement
+        final adminsADesactiver = _admins
+            .where((admin) => admin.etablissementId == id && admin.estActif)
+            .toList();
+        
+        // Désactiver chaque admin
+        for (final admin in adminsADesactiver) {
+          try {
+            await ApiService.toggleAdminState(admin.id, token);
+          } catch (e) {
+            // Continuer même si un admin échoue
+            print('Erreur désactivation admin ${admin.id}: $e');
+          }
+        }
+        
+        // ✅ Recharger les admins pour refléter les changements
+        await loadAdmins(token);
+      }
+      
       if (hasListeners) notifyListeners();
       return true;
     } catch (e) {
