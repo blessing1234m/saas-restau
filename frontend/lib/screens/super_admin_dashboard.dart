@@ -4,6 +4,7 @@ import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/super_admin_provider.dart';
 import 'package:frontend/screens/etablissements_management_screen.dart';
 import 'package:frontend/screens/admin_etablissement_management_screen.dart';
+import 'package:frontend/screens/super_admin_stats_screen.dart';
 
 class SuperAdminDashboard extends StatefulWidget {
   const SuperAdminDashboard({super.key});
@@ -19,7 +20,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
 
     // Load data
     Future.microtask(() {
@@ -58,6 +59,10 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard>
           controller: _tabController,
           tabs: const [
             Tab(
+              icon: Icon(Icons.analytics),
+              text: 'Statistiques',
+            ),
+            Tab(
               icon: Icon(Icons.apartment),
               text: 'Établissements',
             ),
@@ -72,7 +77,8 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard>
         builder: (context, authProvider, superAdminProvider, _) {
           return TabBarView(
             controller: _tabController,
-            children: const [
+            children: [
+              SuperAdminStatsScreen(),
               EtablissementsManagementScreen(),
               AdminEtablissementManagementScreen(),
             ],
