@@ -27,16 +27,11 @@ export class AuthService {
     codeAgent: string,
     motDePasse: string,
   ): Promise<Utilisateur | null> {
-    console.log('[validerUtilisateur] Recherche utilisateur:', codeAgent);
-    
     const utilisateur = await this.prisma.utilisateur.findUnique({
       where: { codeAgent },
     });
 
-    console.log('[validerUtilisateur] Utilisateur trouvé:', utilisateur ? 'OUI' : 'NON');
-
     if (!utilisateur) {
-      console.log('[validerUtilisateur] Utilisateur non trouvé dans DB');
       return null;
     }
 
@@ -45,21 +40,14 @@ export class AuthService {
       utilisateur.motDePasse,
     );
 
-    console.log('[validerUtilisateur] Mot de passe valide:', estValide);
-
     if (!estValide) {
-      console.log('[validerUtilisateur] Mot de passe incorrect');
       return null;
     }
-
-    console.log('[validerUtilisateur] Utilisateur actif:', utilisateur.estActif);
 
     if (!utilisateur.estActif) {
-      console.log('[validerUtilisateur] Utilisateur inactif');
       return null;
     }
 
-    console.log('[validerUtilisateur] Authentification réussie');
     return utilisateur;
   }
 
