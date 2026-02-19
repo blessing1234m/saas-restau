@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/super_admin_provider.dart';
+import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/screens/etablissements_management_screen.dart';
 import 'package:frontend/screens/admin_etablissement_management_screen.dart';
 import 'package:frontend/screens/super_admin_stats_screen.dart';
@@ -50,6 +51,13 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard>
         title: const Text('Super Admin Dashboard', style: TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
         actions: [
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, _) => IconButton(
+              icon: Icon(themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+              onPressed: () => themeProvider.toggleTheme(),
+              tooltip: themeProvider.isDarkMode ? 'Mode clair' : 'Mode sombre',
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _showLogoutDialog(context),
@@ -57,6 +65,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard>
         ],
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Colors.white,
           tabs: const [
             Tab(
               icon: Icon(Icons.analytics),
