@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, IsArray, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, IsArray, ArrayMaxSize } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreatePlatDto {
@@ -19,7 +19,7 @@ export class CreatePlatDto {
   prix: number;
 
   @IsArray()
-  @MaxLength(3, { message: 'Maximum 3 images autorisées' })
+  @ArrayMaxSize(3, { message: 'Maximum 3 images autorisées' })
   @IsOptional()
   @ApiProperty({ 
     description: 'Images du plat en base64 (maximum 3)', 

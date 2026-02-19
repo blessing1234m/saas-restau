@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/super_admin_provider.dart';
-import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/models/etablissement.dart';
 import 'package:frontend/screens/create_etablissement_screen.dart';
 

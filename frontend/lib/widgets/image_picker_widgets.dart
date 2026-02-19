@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:frontend/utils/image_handler.dart';
+import 'dart:convert';
+import 'dart:typed_data';
 
 /// Widget pour sélectionner une image unique avec aperçu
 class SingleImagePickerWidget extends StatefulWidget {
@@ -31,6 +33,20 @@ class _SingleImagePickerWidgetState extends State<SingleImagePickerWidget> {
   void initState() {
     super.initState();
     selectedImage = widget.initialImage;
+  }
+
+  Uint8List? _decodeBase64Image(String base64String) {
+    try {
+      String cleanBase64 = base64String;
+      if (base64String.startsWith('data:')) {
+        // Extraire le base64 après la virgule: data:image/jpeg;base64,...
+        cleanBase64 = base64String.split(',').last;
+      }
+      return base64Decode(cleanBase64);
+    } catch (e) {
+      print('Erreur décodage image: $e');
+      return null;
+    }
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -78,16 +94,21 @@ class _SingleImagePickerWidgetState extends State<SingleImagePickerWidget> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    selectedImage!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[200],
-                        child: Icon(Icons.error_outline, color: Colors.red[400]),
-                      );
-                    },
-                  ),
+                  child: _decodeBase64Image(selectedImage!) != null
+                      ? Image.memory(
+                          _decodeBase64Image(selectedImage!)!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey[200],
+                              child: Icon(Icons.error_outline, color: Colors.red[400]),
+                            );
+                          },
+                        )
+                      : Container(
+                          color: Colors.grey[200],
+                          child: Icon(Icons.error_outline, color: Colors.red[400]),
+                        ),
                 ),
               ),
               Positioned(
@@ -178,6 +199,20 @@ class _MultiImagePickerWidgetState extends State<MultiImagePickerWidget> {
     selectedImages = List.from(widget.initialImages);
   }
 
+  Uint8List? _decodeBase64Image(String base64String) {
+    try {
+      String cleanBase64 = base64String;
+      if (base64String.startsWith('data:')) {
+        // Extraire le base64 après la virgule: data:image/jpeg;base64,...
+        cleanBase64 = base64String.split(',').last;
+      }
+      return base64Decode(cleanBase64);
+    } catch (e) {
+      print('Erreur décodage image: $e');
+      return null;
+    }
+  }
+
   Future<void> _pickImages(ImageSource source) async {
     if (selectedImages.length >= widget.maxImages) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -252,6 +287,7 @@ class _MultiImagePickerWidgetState extends State<MultiImagePickerWidget> {
             ),
             itemCount: selectedImages.length,
             itemBuilder: (context, index) {
+              final imageBytes = _decodeBase64Image(selectedImages[index]);
               return Stack(
                 children: [
                   Container(
@@ -261,29 +297,34 @@ class _MultiImagePickerWidgetState extends State<MultiImagePickerWidget> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        selectedImages[index],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: Colors.grey[200],
-                            child: Icon(Icons.error_outline, color: Colors.red[400]),
-                          );
-                        },
-                      ),
+                      child: imageBytes != null
+                          ? Image.memory(
+                              imageBytes,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[200],
+                                  child: Icon(Icons.error_outline, color: Colors.red[400]),
+                                );
+                              },
+                            )
+                          : Container(
+                              color: Colors.grey[200],
+                              child: Icon(Icons.error_outline, color: Colors.red[400]),
+                            ),
                     ),
                   ),
                   Positioned(
                     top: 4,
                     right: 4,
-                    child: GestureDetector(
-                      onTap: () => _removeImage(index),
-                      child: Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          color: Colors.red[400],
-                          shape: BoxShape.circle,
-                        ),
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: Colors.red[400],
+                        shape: BoxShape.circle,
+                      ),
+                      child: InkWell(
+                        onTap: () => _removeImage(index),
                         child: const Icon(Icons.close, color: Colors.white, size: 16),
                       ),
                     ),

@@ -19,6 +19,30 @@ export class AdminEtablissementService {
     private authService: AuthService,
   ) {}
 
+  // Helper pour convertir une catégorie avec photo en base64
+  private formatCategorie(cat: any) {
+    const result: any = {
+      id: cat.id,
+      nom: cat.nom,
+      description: cat.description,
+      ordre: cat.ordre,
+      sousRestaurantId: cat.sousRestaurantId,
+      photoTypeContenu: cat.photoTypeContenu,
+      photoNomFichier: cat.photoNomFichier,
+      photoTaille: cat.photoTaille,
+      createdAt: cat.createdAt,
+      updatedAt: cat.updatedAt,
+    };
+    
+    // Convertir la photo en base64 si elle existe
+    if (cat.photoAffichage && Buffer.isBuffer(cat.photoAffichage)) {
+      const mimeType = cat.photoTypeContenu || 'image/jpeg';
+      result.photoAffichage = `data:${mimeType};base64,${cat.photoAffichage.toString('base64')}`;
+    }
+    
+    return result;
+  }
+
   // Récupérer l'établissementId de l'admin
   private async obtenirEtablissementId(adminId: string): Promise<string> {
     const admin = await this.prisma.adminEtablissement.findUnique({
@@ -161,7 +185,40 @@ export class AdminEtablissementService {
       throw new NotFoundException('Sous-restaurant non trouvé');
     }
 
-    return sousRestaurant;
+    // Retourner sans les buffers pour éviter erreur sérialisation JSON
+    return {
+      id: sousRestaurant.id,
+      nom: sousRestaurant.nom,
+      etablissementId: sousRestaurant.etablissementId,
+      createdAt: sousRestaurant.createdAt,
+      updatedAt: sousRestaurant.updatedAt,
+      tables: sousRestaurant.tables,
+      categories: sousRestaurant.categories.map(cat => {
+        const formatted = this.formatCategorie(cat);
+        return {
+          ...formatted,
+          plats: cat.plats.map(plat => ({
+            id: plat.id,
+            nom: plat.nom,
+            description: plat.description,
+            prix: plat.prix,
+            categorieId: plat.categorieId,
+            createdAt: plat.createdAt,
+            updatedAt: plat.updatedAt,
+            images: plat.images.map(img => ({
+              id: img.id,
+              typeContenu: img.typeContenu,
+              nomFichier: img.nomFichier,
+              taille: img.taille,
+              ordre: img.ordre,
+              platId: img.platId,
+              createdAt: img.createdAt,
+              updatedAt: img.updatedAt,
+            })),
+          })),
+        };
+      }),
+    };
   }
 
   async mettreAJourSousRestaurant(
@@ -404,7 +461,7 @@ export class AdminEtablissementService {
       },
     }).then(cat => {
       console.log('[CATEGORIE] Catégorie créée avec succès:', cat.id);
-      return cat;
+      return this.formatCategorie(cat);
     }).catch(error => {
       console.error('[CATEGORIE] Erreur Prisma lors de la création:', error);
       throw error;
@@ -425,7 +482,7 @@ export class AdminEtablissementService {
       throw new NotFoundException('Sous-restaurant non trouvé');
     }
 
-    return this.prisma.categorie.findMany({
+    const categories = await this.prisma.categorie.findMany({
       where: { sousRestaurantId },
       include: {
         plats: {
@@ -437,6 +494,15 @@ export class AdminEtablissementService {
         },
       },
       orderBy: { ordre: 'asc' },
+    });
+
+    // Formater les catégories avec photos en base64
+    return categories.map(cat => {
+      const formatted = this.formatCategorie(cat);
+      return {
+        ...formatted,
+        plats: cat.plats,
+      };
     });
   }
 
@@ -493,6 +559,8 @@ export class AdminEtablissementService {
     return this.prisma.categorie.update({
       where: { id: categorieId },
       data: updateData,
+    }).then(cat => {
+      return this.formatCategorie(cat);
     });
   }
 
@@ -595,6 +663,29 @@ export class AdminEtablissementService {
           orderBy: { ordre: 'asc' },
         },
       },
+    }).then(plat => {
+      // Retourner sans les buffers pour éviter erreur sérialisation JSON
+      return {
+        id: plat.id,
+        nom: plat.nom,
+        description: plat.description,
+        prix: plat.prix,
+        categorieId: plat.categorieId,
+        createdAt: plat.createdAt,
+        updatedAt: plat.updatedAt,
+        images: plat.images.map(img => ({
+          id: img.id,
+          typeContenu: img.typeContenu,
+          nomFichier: img.nomFichier,
+          taille: img.taille,
+          ordre: img.ordre,
+          platId: img.platId,
+          createdAt: img.createdAt,
+          updatedAt: img.updatedAt,
+          // Ajouter les données image en base64
+          donnees: img.donnees.toString('base64'),
+        })),
+      };
     });
   }
 
@@ -621,7 +712,7 @@ export class AdminEtablissementService {
       throw new NotFoundException('Catégorie non trouvée');
     }
 
-    return this.prisma.plat.findMany({
+    const plats = await this.prisma.plat.findMany({
       where: { categorieId },
       include: {
         images: {
@@ -629,6 +720,29 @@ export class AdminEtablissementService {
         },
       },
     });
+
+    // Retourner sans les buffers pour éviter erreur sérialisation JSON
+    return plats.map(plat => ({
+      id: plat.id,
+      nom: plat.nom,
+      description: plat.description,
+      prix: plat.prix,
+      categorieId: plat.categorieId,
+      createdAt: plat.createdAt,
+      updatedAt: plat.updatedAt,
+      images: plat.images.map(img => ({
+        id: img.id,
+        typeContenu: img.typeContenu,
+        nomFichier: img.nomFichier,
+        taille: img.taille,
+        ordre: img.ordre,
+        platId: img.platId,
+        createdAt: img.createdAt,
+        updatedAt: img.updatedAt,
+        // Ajouter les données image en base64
+        donnees: img.donnees.toString('base64'),
+      })),
+    }));
   }
 
   async obtenirPlat(
@@ -668,7 +782,28 @@ export class AdminEtablissementService {
       throw new NotFoundException('Plat non trouvé');
     }
 
-    return plat;
+    // Retourner sans les buffers pour éviter erreur sérialisation JSON
+    return {
+      id: plat.id,
+      nom: plat.nom,
+      description: plat.description,
+      prix: plat.prix,
+      categorieId: plat.categorieId,
+      createdAt: plat.createdAt,
+      updatedAt: plat.updatedAt,
+      images: plat.images.map(img => ({
+        id: img.id,
+        typeContenu: img.typeContenu,
+        nomFichier: img.nomFichier,
+        taille: img.taille,
+        ordre: img.ordre,
+        platId: img.platId,
+        createdAt: img.createdAt,
+        updatedAt: img.updatedAt,
+        // Ajouter les données image en base64
+        donnees: img.donnees.toString('base64'),
+      })),
+    };
   }
 
   async mettreAJourPlat(
@@ -704,10 +839,38 @@ export class AdminEtablissementService {
       throw new NotFoundException('Plat non trouvé');
     }
 
-    return this.prisma.plat.update({
+    const updatedPlat = await this.prisma.plat.update({
       where: { id: platId },
       data: updatePlatDto,
+      include: {
+        images: {
+          orderBy: { ordre: 'asc' },
+        },
+      },
     });
+
+    // Retourner sans les buffers pour éviter erreur sérialisation JSON
+    return {
+      id: updatedPlat.id,
+      nom: updatedPlat.nom,
+      description: updatedPlat.description,
+      prix: updatedPlat.prix,
+      categorieId: updatedPlat.categorieId,
+      createdAt: updatedPlat.createdAt,
+      updatedAt: updatedPlat.updatedAt,
+      images: updatedPlat.images.map(img => ({
+        id: img.id,
+        typeContenu: img.typeContenu,
+        nomFichier: img.nomFichier,
+        taille: img.taille,
+        ordre: img.ordre,
+        platId: img.platId,
+        createdAt: img.createdAt,
+        updatedAt: img.updatedAt,
+        // Ajouter les données image en base64
+        donnees: img.donnees.toString('base64'),
+      })),
+    };
   }
 
   async supprimerPlat(

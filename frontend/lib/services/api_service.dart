@@ -568,21 +568,50 @@ class ApiService {
     List<String>? images,
     required String token,
   }) async {
+    final requestData = {
+      'nom': nom,
+      if (description != null) 'description': description,
+      'prix': prix,
+      if (images != null && images.isNotEmpty) 'images': images,
+    };
+    
+    print('=== Création Plat ===');
+    print('SousRestaurantId: $sousRestaurantId');
+    print('CategorieId: $categorieId');
+    print('Données envoyées: $requestData');
+    
     final response = await postWithAuth(
       '/admin-etablissements/sous-restaurants/$sousRestaurantId/categories/$categorieId/plats',
       token,
-      {
-        'nom': nom,
-        if (description != null) 'description': description,
-        'prix': prix,
-        if (images != null && images.isNotEmpty) 'images': images,
-      },
+      requestData,
     );
+
+    print('Statut réponse: ${response.statusCode}');
+    print('Corps réponse: ${response.body}');
 
     if (response.statusCode == 201) {
       return Plat.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Erreur lors de la création du plat');
+      // Obtenir le message d'erreur du serveur
+      String errorMessage = 'Erreur ${response.statusCode}: ${response.reasonPhrase}';
+      try {
+        final errorBody = jsonDecode(response.body);
+        if (errorBody is Map) {
+          if (errorBody['message'] != null) {
+            errorMessage = errorBody['message'];
+          } else if (errorBody['error'] != null) {
+            errorMessage = errorBody['error'];
+          }
+          // Afficher les détails des champs s'il y en a
+          if (errorBody['errors'] != null) {
+            final errors = errorBody['errors'] as List;
+            errorMessage += '\n' + errors.map((e) => '${e['field']}: ${e['constraints']?.toString() ?? ''}').join('\n');
+          }
+        }
+      } catch (e) {
+        print('Erreur parsing réponse: $e');
+      }
+      throw Exception(errorMessage);
     }
   }
 
