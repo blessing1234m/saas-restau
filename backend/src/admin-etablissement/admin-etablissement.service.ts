@@ -46,6 +46,50 @@ export class AdminEtablissementService {
     }
   }
 
+  // ========== DASHBOARD ==========
+
+  async obtenirMonEtablissement(adminId: string) {
+    try {
+      // D'abord, chercher l'admin
+      const admin = await this.prisma.adminEtablissement.findUnique({
+        where: { utilisateurId: adminId },
+      });
+
+      if (!admin) {
+        throw new ForbiddenException('Aucun établissement trouvé pour cet administrateur');
+      }
+
+      // Ensuite, charger l'établissement avec les relations
+      const etablissement = await this.prisma.etablissement.findUnique({
+        where: { id: admin.etablissementId },
+        include: {
+          sousRestaurants: {
+            where: { estActif: true },
+            include: {
+              tables: true,
+              categories: {
+                where: { estActive: true },
+              },
+            },
+          },
+          serveurs: true,
+        },
+      });
+
+      if (!etablissement) {
+        throw new ForbiddenException('L\'établissement associé n\'existe plus');
+      }
+
+      return etablissement;
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        throw error;
+      }
+      console.error('ERREUR DANS obtenirMonEtablissement:', error);
+      throw new ForbiddenException('Erreur lors du chargement de l\'établissement: ' + (error.message || 'Erreur inconnue'));
+    }
+  }
+
   // ========== SOUS-RESTAURANTS ==========
 
   async creerSousRestaurant(
@@ -286,6 +330,15 @@ export class AdminEtablissementService {
     sousRestaurantId: string,
     createCategorieDto: CreateCategorieDto,
   ) {
+    console.log('[CATEGORIE] Création demandée:', {
+      adminId,
+      sousRestaurantId,
+      nom: createCategorieDto.nom,
+      description: createCategorieDto.description,
+      hasPhoto: !!createCategorieDto.photoAffichage,
+      ordre: createCategorieDto.ordre,
+    });
+
     const etablissementId = await this.obtenirEtablissementId(adminId);
 
     const sousRestaurant = await this.prisma.sousRestaurant.findUnique({
@@ -310,24 +363,35 @@ export class AdminEtablissementService {
     // Traiter la photo si fournie
     let photoData: any = {};
     if (createCategorieDto.photoAffichage) {
-      let buffer: Buffer;
-      let mimeType = 'image/jpeg';
+      try {
+        let buffer: Buffer;
+        let mimeType = 'image/jpeg';
 
-      if (createCategorieDto.photoAffichage.startsWith('data:')) {
-        // Format: data:image/jpeg;base64,...
-        const [header, base64String] = createCategorieDto.photoAffichage.split(',');
-        mimeType = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
-        buffer = Buffer.from(base64String, 'base64');
-      } else {
-        buffer = Buffer.from(createCategorieDto.photoAffichage, 'base64');
+        if (createCategorieDto.photoAffichage.startsWith('data:')) {
+          // Format: data:image/jpeg;base64,...
+          const [header, base64String] = createCategorieDto.photoAffichage.split(',');
+          mimeType = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+          buffer = Buffer.from(base64String, 'base64');
+        } else {
+          buffer = Buffer.from(createCategorieDto.photoAffichage, 'base64');
+        }
+
+        console.log('[CATEGORIE] Photo traitée:', { 
+          mimeType, 
+          tailleBuffer: buffer.length,
+          isBuffer: Buffer.isBuffer(buffer)
+        });
+
+        photoData = {
+          photoAffichage: buffer,
+          photoTypeContenu: mimeType,
+          photoNomFichier: 'categorie-photo.jpg',
+          photoTaille: buffer.length,
+        };
+      } catch (error) {
+        console.error('[CATEGORIE] Erreur traitement photo:', error);
+        throw new BadRequestException('Erreur lors du traitement de la photo');
       }
-
-      photoData = {
-        photoAffichage: buffer,
-        photoTypeContenu: mimeType,
-        photoNomFichier: 'categorie-photo.jpg',
-        photoTaille: buffer.length,
-      };
     }
 
     return this.prisma.categorie.create({
@@ -338,6 +402,12 @@ export class AdminEtablissementService {
         sousRestaurantId,
         ...photoData,
       },
+    }).then(cat => {
+      console.log('[CATEGORIE] Catégorie créée avec succès:', cat.id);
+      return cat;
+    }).catch(error => {
+      console.error('[CATEGORIE] Erreur Prisma lors de la création:', error);
+      throw error;
     });
   }
 

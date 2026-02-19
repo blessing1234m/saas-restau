@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/screens/super_admin_dashboard.dart';
+import 'package:frontend/screens/admin_dashboard.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -23,6 +24,10 @@ class HomeScreen extends StatelessWidget {
         // Route to appropriate dashboard based on role
         if (user.isSuperAdmin) {
           return const SuperAdminDashboard();
+        }
+
+        if (user.isAdminEtablissement) {
+          return const AdminDashboard();
         }
 
         // Default home screen for other roles

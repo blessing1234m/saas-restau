@@ -27,6 +27,33 @@ import { CreateServeurDto } from './dto/serveur.dto';
 export class AdminEtablissementController {
   constructor(private adminService: AdminEtablissementService) {}
 
+  // DASHBOARD
+  
+  @Get('test')
+  async testConnection(
+    @UtilisateurActuel() user,
+  ) {
+    return { 
+      message: 'Connexion réussie',
+      user: {
+        utilisateurId: user.utilisateurId,
+        role: user.role,
+        codeAgent: user.codeAgent,
+      }
+    };
+  }
+
+  @Get('mon-etablissement')
+  async obtenirMonEtablissement(
+    @UtilisateurActuel() user,
+  ) {
+    try {
+      return await this.adminService.obtenirMonEtablissement(user.utilisateurId);
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // SOUS-RESTAURANTS 
 
   @Post('sous-restaurants')

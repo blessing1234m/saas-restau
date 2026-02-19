@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateCategorieDto {
@@ -17,9 +17,9 @@ export class CreateCategorieDto {
   @ApiProperty({ description: 'Photo d\'affichage en base64', example: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...', required: false })
   photoAffichage?: string;
 
-  @IsString()
+  @IsNumber()
   @IsOptional()
-  @ApiProperty({ description: 'Ordre d\'affichage', example: '1', required: false })
+  @ApiProperty({ description: 'Ordre d\'affichage', example: 1, required: false })
   ordre?: number;
 }
 
@@ -39,8 +39,8 @@ export class UpdateCategorieDto {
   @ApiProperty({ description: 'Photo d\'affichage en base64', example: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...', required: false })
   photoAffichage?: string;
 
-  @IsString()
+  @IsNumber()
   @IsOptional()
-  @ApiProperty({ description: 'Ordre d\'affichage', example: '1', required: false })
+  @ApiProperty({ description: 'Ordre d\'affichage', example: 1, required: false })
   ordre?: number;
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/super_admin_provider.dart';
+import 'package:frontend/providers/admin_etablissement_provider.dart';
+import 'package:frontend/providers/menu_management_provider.dart';
 import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/screens/home_screen.dart';
 
@@ -18,6 +20,8 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => SuperAdminProvider()),
+        ChangeNotifierProvider(create: (_) => AdminEtablissementProvider()),
+        ChangeNotifierProvider(create: (_) => MenuManagementProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

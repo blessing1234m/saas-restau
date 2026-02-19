@@ -2,3 +2,6 @@ export 'auth_user.dart';
 export 'login_response.dart';
 export 'etablissement.dart';
 export 'admin_etablissement.dart';
+export 'sous_restaurant.dart';
+export 'categorie.dart';
+export 'plat.dart';
