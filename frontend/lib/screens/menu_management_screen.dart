@@ -2052,36 +2052,53 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     BuildContext context,
     Categorie categorie,
   ) {
+    print('[DEBUG] _showDetailsCategorieDialog appelée');
+    print('[DEBUG] categorie: ${categorie.nom}, photoAffichage: ${categorie.photoAffichage != null ? "present" : "null"}, description: ${categorie.description}');
+    
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(categorie.nom),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (categorie.photoAffichage != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: _buildCategoryImage(categorie.photoAffichage!),
+        contentPadding: const EdgeInsets.all(16.0),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Image
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: double.infinity,
+                    height: 200,
+                    color: Colors.grey[200],
+                    child: categorie.photoAffichage != null
+                        ? _buildCategoryImage(categorie.photoAffichage!)
+                        : Icon(
+                            Icons.image_not_supported,
+                            size: 48,
+                            color: Colors.grey[400],
+                          ),
                   ),
                 ),
-              if (categorie.description != null && categorie.description!.isNotEmpty)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Description',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(categorie.description!),
-                  ],
+                const SizedBox(height: 16),
+                // Description
+                const Text(
+                  'Description',
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-            ],
+                const SizedBox(height: 8),
+                if (categorie.description != null && categorie.description!.isNotEmpty)
+                  Text(categorie.description!)
+                else
+                  Text(
+                    'Pas de description',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+              ],
+            ),
           ),
         ),
         actions: [

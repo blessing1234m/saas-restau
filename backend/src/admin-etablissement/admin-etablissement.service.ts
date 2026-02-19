@@ -32,12 +32,23 @@ export class AdminEtablissementService {
       photoTaille: cat.photoTaille,
       createdAt: cat.createdAt,
       updatedAt: cat.updatedAt,
+      photoAffichage: null, // Par défaut null
     };
     
     // Convertir la photo en base64 si elle existe
-    if (cat.photoAffichage && Buffer.isBuffer(cat.photoAffichage)) {
-      const mimeType = cat.photoTypeContenu || 'image/jpeg';
-      result.photoAffichage = `data:${mimeType};base64,${cat.photoAffichage.toString('base64')}`;
+    if (cat.photoAffichage) {
+      try {
+        let buffer = cat.photoAffichage;
+        // Si ce n'est pas un Buffer, essayer de le convertir
+        if (!Buffer.isBuffer(buffer)) {
+          buffer = Buffer.from(buffer);
+        }
+        const mimeType = cat.photoTypeContenu || 'image/jpeg';
+        result.photoAffichage = `data:${mimeType};base64,${buffer.toString('base64')}`;
+        console.log('[formatCategorie] Photo convertie en base64 pour:', cat.nom);
+      } catch (error) {
+        console.error('[formatCategorie] Erreur conversion photo en base64:', error, 'cat.photoAffichage type:', typeof cat.photoAffichage);
+      }
     }
     
     return result;
@@ -494,6 +505,17 @@ export class AdminEtablissementService {
         },
       },
       orderBy: { ordre: 'asc' },
+    });
+
+    console.log('[obtenirCategories] Nombre de catégories:', categories.length);
+    categories.forEach((cat, idx) => {
+      console.log(`[obtenirCategories] Catégorie ${idx}:`, {
+        id: cat.id,
+        nom: cat.nom,
+        hasPhoto: !!cat.photoAffichage,
+        photoType: typeof cat.photoAffichage,
+        dataLength: cat.photoAffichage ? Buffer.byteLength(cat.photoAffichage) : 0,
+      });
     });
 
     // Formater les catégories avec photos en base64
