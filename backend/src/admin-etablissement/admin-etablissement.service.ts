@@ -839,9 +839,67 @@ export class AdminEtablissementService {
       throw new NotFoundException('Plat non trouvé');
     }
 
+    // Préparer les données de mise à jour
+    const updateData: any = {};
+    if (updatePlatDto.nom !== undefined) updateData.nom = updatePlatDto.nom;
+    if (updatePlatDto.description !== undefined) updateData.description = updatePlatDto.description;
+    if (updatePlatDto.prix !== undefined) updateData.prix = updatePlatDto.prix;
+
+    // Gérer la suppression des images existantes
+    if (updatePlatDto.removeImageIds && updatePlatDto.removeImageIds.length > 0) {
+      // Supprimer les images spécifiées
+      for (const imageId of updatePlatDto.removeImageIds) {
+        await this.prisma.imagePlat.delete({
+          where: { id: imageId },
+        }).catch(() => {
+          // Ignorer les erreurs si l'image n'existe pas
+        });
+      }
+    }
+
+    // Gérer l'ajout des nouvelles images
+    if (updatePlatDto.images && updatePlatDto.images.length > 0) {
+      // Limiter à 3 images totales
+      const currentImageCount = await this.prisma.imagePlat.count({
+        where: { platId: platId },
+      });
+      
+      if (currentImageCount + updatePlatDto.images.length > 3) {
+        throw new BadRequestException('Maximum 3 images autorisées au total');
+      }
+
+      // Préparer les données des nouvelles images
+      const imagesData = updatePlatDto.images.map((imageBase64, index) => {
+        let buffer: Buffer;
+        let mimeType = 'image/jpeg';
+        let fileName = `plat-image-${index + 1}.jpg`;
+
+        if (imageBase64.startsWith('data:')) {
+          const [header, base64String] = imageBase64.split(',');
+          mimeType = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+          buffer = Buffer.from(base64String, 'base64');
+        } else {
+          buffer = Buffer.from(imageBase64, 'base64');
+        }
+
+        return {
+          donnees: buffer,
+          typeContenu: mimeType,
+          nomFichier: fileName,
+          taille: buffer.length,
+          ordre: index,
+        };
+      });
+
+      // Créer les nouvelles images
+      updateData.images = {
+        create: imagesData,
+      };
+    }
+
     const updatedPlat = await this.prisma.plat.update({
       where: { id: platId },
-      data: updatePlatDto,
+      data: updateData,
       include: {
         images: {
           orderBy: { ordre: 'asc' },

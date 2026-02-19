@@ -662,6 +662,7 @@ class ApiService {
     String? description,
     double? prix,
     List<String>? images,
+    List<String>? removeImageIds,
     required String token,
   }) async {
     final response = await putWithAuth(
@@ -672,6 +673,7 @@ class ApiService {
         if (description != null) 'description': description,
         if (prix != null) 'prix': prix,
         if (images != null) 'images': images,
+        if (removeImageIds != null && removeImageIds.isNotEmpty) 'removeImageIds': removeImageIds,
       },
     );
 

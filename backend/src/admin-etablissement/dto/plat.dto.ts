@@ -46,4 +46,25 @@ export class UpdatePlatDto {
   @IsOptional()
   @ApiProperty({ description: 'Prix du plat', example: 15.99, minimum: 0.01, required: false })
   prix?: number;
+
+  @IsArray()
+  @ArrayMaxSize(3, { message: 'Maximum 3 images autorisées' })
+  @IsOptional()
+  @ApiProperty({ 
+    description: 'Nouvelles images du plat en base64 (maximum 3)', 
+    example: ['data:image/jpeg;base64,/9j/4AAQSkZJRg...'],
+    maxItems: 3,
+    required: false 
+  })
+  images?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    description: 'IDs des images existantes à supprimer',
+    example: ['img_id_1', 'img_id_2'],
+    required: false
+  })
+  removeImageIds?: string[];
 }

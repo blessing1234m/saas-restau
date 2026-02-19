@@ -311,6 +311,7 @@ class MenuManagementProvider extends ChangeNotifier {
     String? description,
     double? prix,
     List<String>? imagesBase64,
+    List<String>? removeImageIds,
     required String token,
   }) async {
     try {
@@ -322,6 +323,7 @@ class MenuManagementProvider extends ChangeNotifier {
         description: description,
         prix: prix,
         images: imagesBase64,
+        removeImageIds: removeImageIds,
         token: token,
       );
       final plats = _platsByCategorie[categorieId];

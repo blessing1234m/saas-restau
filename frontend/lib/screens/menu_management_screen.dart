@@ -1667,10 +1667,12 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     final nomController = TextEditingController(text: plat.nom);
     final descriptionController = TextEditingController(text: plat.description ?? '');
     final prixController = TextEditingController(text: plat.prix.toString());
-    // IMPORTANT: Seulement les NOUVELLES images (base64), pas les existantes
+    // Seulement les NOUVELLES images (base64)
     List<String> newImages = [];
-    // Garder les images existantes séparément
-    List<dynamic> existingImages = List.from(plat.images ?? []);
+    // Toutes les images existantes originales
+    List<dynamic> originalImages = List.from(plat.images ?? []);
+    // IDs des images existantes à supprimer
+    Set<String> imagesToRemove = {};
 
     showDialog(
       context: context,
@@ -1716,36 +1718,86 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
               ),
               const SizedBox(height: 16),
-              // Afficher les images existantes
-              if (existingImages.isNotEmpty)
+              // Afficher les images existantes avec option de suppression
+              if (originalImages.isNotEmpty)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Images existantes:', style: Theme.of(context).textTheme.labelSmall),
+                    Text('Images actuelles (cliquez X pour supprimer):', style: Theme.of(context).textTheme.labelSmall),
                     const SizedBox(height: 8),
                     SizedBox(
-                      height: 100,
+                      height: 120,
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: List.generate(existingImages.length, (index) {
+                          children: List.generate(originalImages.length, (index) {
+                            final imageId = originalImages[index]['id'] as String?;
+                            final isMarkedForRemoval = imageId != null && imagesToRemove.contains(imageId);
+                            
                             return Padding(
                               padding: const EdgeInsets.only(right: 8.0),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  width: 100,
-                                  height: 100,
-                                  color: Colors.grey[200],
-                                  child: (existingImages[index] is String && (existingImages[index] as String).startsWith('data:'))
-                                      ? Image.memory(
-                                          base64Decode(
-                                            (existingImages[index] as String).split(',').last,
+                              child: Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Opacity(
+                                      opacity: isMarkedForRemoval ? 0.5 : 1.0,
+                                      child: Container(
+                                        width: 120,
+                                        height: 120,
+                                        color: Colors.grey[200],
+                                        child: (originalImages[index] is Map && originalImages[index]['donnees'] != null)
+                                            ? Image.memory(
+                                                base64Decode(originalImages[index]['donnees']),
+                                                fit: BoxFit.cover,
+                                              )
+                                            : const Icon(Icons.image, color: Colors.grey),
+                                      ),
+                                    ),
+                                  ),
+                                  if (isMarkedForRemoval)
+                                    Positioned.fill(
+                                      child: Container(
+                                        color: Colors.black.withOpacity(0.3),
+                                        child: const Center(
+                                          child: Icon(
+                                            Icons.check_circle,
+                                            color: Colors.green,
+                                            size: 40,
                                           ),
-                                          fit: BoxFit.cover,
-                                        )
-                                      : const Icon(Icons.image, color: Colors.grey),
-                                ),
+                                        ),
+                                      ),
+                                    ),
+                                  Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(3),
+                                      decoration: BoxDecoration(
+                                        color: isMarkedForRemoval ? Colors.green[400] : Colors.red[400],
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: InkWell(
+                                        onTap: () {
+                                          if (imageId != null) {
+                                            setState(() {
+                                              if (imagesToRemove.contains(imageId)) {
+                                                imagesToRemove.remove(imageId);
+                                              } else {
+                                                imagesToRemove.add(imageId);
+                                              }
+                                            });
+                                          }
+                                        },
+                                        child: Icon(
+                                          isMarkedForRemoval ? Icons.check : Icons.close,
+                                          color: Colors.white,
+                                          size: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             );
                           }),
@@ -1821,7 +1873,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                     const SizedBox(height: 16),
                   ],
                 )
-              else if (existingImages.isEmpty)
+              else if (originalImages.isEmpty)
                 Container(
                   width: double.infinity,
                   height: 100,
@@ -1839,15 +1891,22 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                   ),
                 ),
               const SizedBox(height: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Ajouter de nouvelles images:', style: Theme.of(context).textTheme.labelSmall),
+                  const SizedBox(height: 8),
+                ],
+              ),
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: (existingImages.length + newImages.length >= 3) ? null : () async {
+                      onPressed: (originalImages.length - imagesToRemove.length + newImages.length >= 3) ? null : () async {
                         final base64 = await ImageHandler.pickImageAsBase64(
                           source: ImageSource.gallery,
                         );
-                        if (base64 != null && (newImages.length + existingImages.length) < 3) {
+                        if (base64 != null && (newImages.length + originalImages.length - imagesToRemove.length) < 3) {
                           setState(() {
                             newImages.add(base64);
                           });
@@ -1860,11 +1919,11 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: (existingImages.length + newImages.length >= 3) ? null : () async {
+                      onPressed: (originalImages.length - imagesToRemove.length + newImages.length >= 3) ? null : () async {
                         final base64 = await ImageHandler.pickImageAsBase64(
                           source: ImageSource.camera,
                         );
-                        if (base64 != null && (newImages.length + existingImages.length) < 3) {
+                        if (base64 != null && (newImages.length + originalImages.length - imagesToRemove.length) < 3) {
                           setState(() {
                             newImages.add(base64);
                           });
@@ -1878,7 +1937,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                '${existingImages.length + newImages.length}/3 photos',
+                '${newImages.length + originalImages.length - imagesToRemove.length}/3 photos',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: Colors.grey[600],
                 ),
@@ -1929,6 +1988,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                   description: description.isEmpty ? null : description,
                   prix: prix,
                   imagesBase64: newImages.isNotEmpty ? newImages : null,
+                  removeImageIds: imagesToRemove.isNotEmpty ? imagesToRemove.toList() : null,
                   token: authProvider.token!,
                 );
 
