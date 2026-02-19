@@ -4,8 +4,10 @@ import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/super_admin_provider.dart';
 import 'package:frontend/providers/admin_etablissement_provider.dart';
 import 'package:frontend/providers/menu_management_provider.dart';
+import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/screens/home_screen.dart';
+import 'package:frontend/themes/app_themes.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,38 +20,31 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => SuperAdminProvider()),
         ChangeNotifierProvider(create: (_) => AdminEtablissementProvider()),
         ChangeNotifierProvider(create: (_) => MenuManagementProvider()),
       ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Restaurant Manager',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.blue,
-            brightness: Brightness.light,
-          ),
-        ),
-        darkTheme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.blue,
-            brightness: Brightness.dark,
-          ),
-        ),
-        themeMode: ThemeMode.system,
-        home: Consumer<AuthProvider>(
-          builder: (context, authProvider, _) {
-            if (authProvider.isAuthenticated) {
-              return const HomeScreen();
-            } else {
-              return const LoginScreen();
-            }
-          },
-        ),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'Restaurant Manager',
+            theme: AppThemes.lightTheme,
+            darkTheme: AppThemes.darkTheme,
+            themeMode: themeProvider.themeMode,
+            home: Consumer<AuthProvider>(
+              builder: (context, authProvider, _) {
+                if (authProvider.isAuthenticated) {
+                  return const HomeScreen();
+                } else {
+                  return const LoginScreen();
+                }
+              },
+            ),
+          );
+        },
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/admin_etablissement_provider.dart';
+import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/screens/menu_management_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -34,6 +35,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
         title: const Text('Tableau de Bord'),
         elevation: 0,
         actions: [
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, _) {
+              return IconButton(
+                icon: Icon(themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+                onPressed: () {
+                  themeProvider.toggleTheme();
+                },
+                tooltip: themeProvider.isDarkMode ? 'Mode clair' : 'Mode sombre',
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
+import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/screens/super_admin_dashboard.dart';
 import 'package:frontend/screens/admin_dashboard.dart';
 
@@ -50,6 +51,17 @@ class _DefaultHomeScreen extends StatelessWidget {
         title: const Text('Restaurant Manager'),
         elevation: 0,
         actions: [
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, _) {
+              return IconButton(
+                icon: Icon(themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+                onPressed: () {
+                  themeProvider.toggleTheme();
+                },
+                tooltip: themeProvider.isDarkMode ? 'Mode clair' : 'Mode sombre',
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {

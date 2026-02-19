@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/super_admin_provider.dart';
+import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/models/admin_etablissement.dart';
 
 class CreateAdminEtablissementScreen extends StatefulWidget {
@@ -53,6 +54,19 @@ class _CreateAdminEtablissementScreenState
               : 'Modifier Admin Établissement',
         ),
         elevation: 0,
+        actions: [
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, _) {
+              return IconButton(
+                icon: Icon(themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+                onPressed: () {
+                  themeProvider.toggleTheme();
+                },
+                tooltip: themeProvider.isDarkMode ? 'Mode clair' : 'Mode sombre',
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer2<AuthProvider, SuperAdminProvider>(
         builder: (context, authProvider, superAdminProvider, _) {

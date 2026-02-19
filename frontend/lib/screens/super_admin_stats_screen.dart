@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/super_admin_provider.dart';
+import 'package:frontend/providers/theme_provider.dart';
 
 class SuperAdminStatsScreen extends StatefulWidget {
   const SuperAdminStatsScreen({super.key});
