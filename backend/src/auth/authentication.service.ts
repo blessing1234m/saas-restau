@@ -12,17 +12,17 @@ export class AuthenticationService {
   constructor(private authService: AuthService) {}
 
   async login(loginDto: LoginDto): Promise<LoginResponseDto> {
-    // console.log('LOGIN REQUEST RECEIVED');
-    // console.log('Body:', JSON.stringify(loginDto));
-    // console.log('Code Agent:', loginDto.codeAgent);
-    // console.log('Mot de passe:', loginDto.motDePasse);
+    console.log('LOGIN REQUEST RECEIVED');
+    console.log('Body:', JSON.stringify(loginDto));
+    console.log('Code Agent:', loginDto.codeAgent);
+    console.log('Mot de passe:', loginDto.motDePasse);
     
     const utilisateur = await this.authService.validerUtilisateur(
       loginDto.codeAgent,
       loginDto.motDePasse,
     );
 
-    // console.log('Utilisateur trouvé:', utilisateur ? utilisateur.codeAgent : 'NON');
+    console.log('Utilisateur trouvé:', utilisateur ? utilisateur.codeAgent : 'NON');
 
     if (!utilisateur) {
       throw new UnauthorizedException(

@@ -55,9 +55,13 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Trim the inputs to remove leading/trailing whitespace
+      final trimmedCodeAgent = codeAgent.trim();
+      final trimmedMotDePasse = motDePasse.trim();
+      
       final response = await ApiService.login(
-        codeAgent: codeAgent,
-        motDePasse: motDePasse,
+        codeAgent: trimmedCodeAgent,
+        motDePasse: trimmedMotDePasse,
       );
 
       // Create AuthUser from response
