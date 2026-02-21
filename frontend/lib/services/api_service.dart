@@ -701,6 +701,187 @@ class ApiService {
     }
   }
 
+  // ========== SERVEURS ==========
+
+  /// Create a new serveur
+  static Future<Serveur> createServeur({
+    required String codeAgent,
+    required String motDePasse,
+    required String token,
+  }) async {
+    final response = await postWithAuth(
+      '/admin-etablissements/serveurs',
+      token,
+      {
+        'codeAgent': codeAgent,
+        'motDePasse': motDePasse,
+      },
+    );
+
+    if (response.statusCode == 201) {
+      return Serveur.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception(_extractErrorMessage(response));
+    }
+  }
+
+  /// Create a new serveur with sous-restaurant assignment
+  static Future<Serveur> createServeurWithSousRestaurant({
+    required String codeAgent,
+    required String motDePasse,
+    required String sousRestaurantId,
+    required String token,
+  }) async {
+    final response = await postWithAuth(
+      '/admin-etablissements/serveurs',
+      token,
+      {
+        'codeAgent': codeAgent,
+        'motDePasse': motDePasse,
+        'sousRestaurantId': sousRestaurantId,
+      },
+    );
+
+    if (response.statusCode == 201) {
+      return Serveur.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception(_extractErrorMessage(response));
+    }
+  }
+
+  /// Get all serveurs
+  static Future<List<Serveur>> getServeurs(String token) async {
+    final response = await getWithAuth('/admin-etablissements/serveurs', token);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((e) => Serveur.fromJson(e)).toList();
+    } else {
+      throw Exception('Erreur lors du chargement des serveurs');
+    }
+  }
+
+  /// Toggle serveur state (actif/inactif)
+  static Future<void> toggleServeurState(
+    String serveurId,
+    String token,
+  ) async {
+    final response = await patchWithAuth(
+      '/admin-etablissements/serveurs/$serveurId/changer-etat',
+      token,
+      null,
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Erreur lors du changement d\'état du serveur');
+    }
+  }
+
+  /// Delete a serveur
+  static Future<void> deleteServeur(
+    String serveurId,
+    String token,
+  ) async {
+    final response = await deleteWithAuth(
+      '/admin-etablissements/serveurs/$serveurId',
+      token,
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Erreur lors de la suppression du serveur');
+    }
+  }
+
+  // ========== SERVEUR MENU ==========
+
+  /// Get établissement of the serveur
+  static Future<Map<String, dynamic>> getEtablissementDuServeur(String token) async {
+    final response = await getWithAuth('/serveurs/mon-etablissement', token);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } else {
+      throw Exception('Erreur lors du chargement de l\'établissement');
+    }
+  }
+
+  /// Get sous-restaurant assigned to the serveur
+  static Future<Map<String, dynamic>?> getSousRestaurantDuServeur(String token) async {
+    final response = await getWithAuth('/serveurs/mon-sous-restaurant', token);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } else {
+      return null;
+    }
+  }
+
+  /// Get all sous-restaurants of the serveur's établissement
+  static Future<List<Map<String, dynamic>>> getSousRestaurantsDuServeur(String token) async {
+    final response = await getWithAuth('/serveurs/sous-restaurants', token);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      throw Exception('Erreur lors du chargement des sous-restaurants');
+    }
+  }
+
+  /// Get complete menu for a sous-restaurant
+  static Future<Map<String, dynamic>> getMenuSousRestaurant(
+    String sousRestaurantId,
+    String token,
+  ) async {
+    final response = await getWithAuth(
+      '/serveurs/sous-restaurants/$sousRestaurantId/menu',
+      token,
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } else {
+      throw Exception('Erreur lors du chargement du menu');
+    }
+  }
+
+  /// Get categories of a sous-restaurant
+  static Future<List<Map<String, dynamic>>> getCategoriesSousRestaurant(
+    String sousRestaurantId,
+    String token,
+  ) async {
+    final response = await getWithAuth(
+      '/serveurs/sous-restaurants/$sousRestaurantId/categories',
+      token,
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      throw Exception('Erreur lors du chargement des catégories');
+    }
+  }
+
+  /// Get plats of a category
+  static Future<List<Map<String, dynamic>>> getPlatsDuCategorie(
+    String sousRestaurantId,
+    String categorieId,
+    String token,
+  ) async {
+    final response = await getWithAuth(
+      '/serveurs/sous-restaurants/$sousRestaurantId/categories/$categorieId/plats',
+      token,
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      throw Exception('Erreur lors du chargement des plats');
+    }
+  }
+
   static String _extractErrorMessage(http.Response response) {
     try {
       final data = jsonDecode(response.body);

@@ -6,9 +6,10 @@ import { AuthModule } from './auth/auth.module';
 import { SuperAdminModule } from './super-admin/super-admin.module';
 import { AdminEtablissementModule } from './admin-etablissement/admin-etablissement.module';
 import { CommandesModule } from './commandes/commandes.module';
+import { ServeurModule } from './serveur/serveur.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, SuperAdminModule, AdminEtablissementModule, CommandesModule],
+  imports: [PrismaModule, AuthModule, SuperAdminModule, AdminEtablissementModule, CommandesModule, ServeurModule],
   controllers: [AppController],
   providers: [AppService],
 })

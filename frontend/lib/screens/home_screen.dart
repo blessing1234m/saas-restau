@@ -4,6 +4,7 @@ import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/screens/super_admin_dashboard.dart';
 import 'package:frontend/screens/admin_dashboard.dart';
+import 'package:frontend/screens/serveur_dashboard.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -29,6 +30,10 @@ class HomeScreen extends StatelessWidget {
 
         if (user.isAdminEtablissement) {
           return const AdminDashboard();
+        }
+
+        if (user.isServeur) {
+          return const ServeurDashboard();
         }
 
         // Default home screen for other roles

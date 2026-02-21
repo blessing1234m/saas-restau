@@ -11,5 +11,9 @@ export class CreateServeurDto {
   @IsNotEmpty()
   @ApiProperty({ description: 'Mot de passe du serveur', example: 'password123' })
   motDePasse: string;
-}
 
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({ description: 'ID du sous-restaurant assigné (obligatoire)', example: 'clx...' })
+  sousRestaurantId: string;
+}

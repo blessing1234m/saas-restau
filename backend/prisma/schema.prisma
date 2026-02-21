@@ -96,6 +96,7 @@ model SousRestaurant {
   tables                Table[]
   categories            Categorie[]
   commandes             Commande[]
+  serveurs              Serveur[]
 
   @@unique([etablissementId, nom])
   @@index([etablissementId])
@@ -187,15 +188,18 @@ model Serveur {
   id                    String                @id @default(cuid())
   utilisateurId         String                @unique
   etablissementId       String
+  sousRestaurantId      String?
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
 
   // Relations
   utilisateur           Utilisateur           @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
   etablissement         Etablissement         @relation(fields: [etablissementId], references: [id], onDelete: Cascade)
+  sousRestaurant        SousRestaurant?       @relation(fields: [sousRestaurantId], references: [id], onDelete: SetNull)
   commandes             Commande[]
 
   @@index([etablissementId])
+  @@index([sousRestaurantId])
 }
 
 // ========== COMMANDES ==========

@@ -4,6 +4,8 @@ import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/super_admin_provider.dart';
 import 'package:frontend/providers/admin_etablissement_provider.dart';
 import 'package:frontend/providers/menu_management_provider.dart';
+import 'package:frontend/providers/serveur_provider.dart';
+import 'package:frontend/providers/serveur_menu_provider.dart';
 import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/screens/home_screen.dart';
@@ -25,6 +27,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SuperAdminProvider()),
         ChangeNotifierProvider(create: (_) => AdminEtablissementProvider()),
         ChangeNotifierProvider(create: (_) => MenuManagementProvider()),
+        ChangeNotifierProvider(create: (_) => ServeurProvider()),
+        ChangeNotifierProvider(create: (_) => ServeurMenuProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {

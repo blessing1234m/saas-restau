@@ -4,6 +4,7 @@ import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/admin_etablissement_provider.dart';
 import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/screens/menu_management_screen.dart';
+import 'package:frontend/screens/serveurs_management_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -309,7 +310,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         colorScheme,
                         textTheme,
                         onTap: () {
-                          // TODO: Implement servers management
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ServeursManagementScreen(),
+                            ),
+                          );
                         },
                       ),
                       const SizedBox(height: 8),

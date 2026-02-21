@@ -1006,16 +1006,30 @@ export class AdminEtablissementService {
       throw new BadRequestException('Ce code agent est déjà utilisé');
     }
 
+    // Vérifier que le sous-restaurant appartient à l'établissement (sousRestaurantId est obligatoire)
+    const sousRestaurant = await this.prisma.sousRestaurant.findUnique({
+      where: { id: createServeurDto.sousRestaurantId },
+    });
+
+    if (!sousRestaurant || sousRestaurant.etablissementId !== etablissementId) {
+      throw new BadRequestException('Sous-restaurant non trouvé ou n\'appartient pas à cet établissement');
+    }
+
+    console.log('[creerServeur] Création du serveur avec code agent:', createServeurDto.codeAgent);
+
     const utilisateur = await this.authService.creerUtilisateur(
       createServeurDto.codeAgent,
       createServeurDto.motDePasse,
       'SERVEUR',
     );
 
+    console.log('[creerServeur] Utilisateur créé avec ID:', utilisateur.id, 'Code agent:', utilisateur.codeAgent);
+
     const serveur = await this.prisma.serveur.create({
       data: {
         utilisateurId: utilisateur.id,
         etablissementId,
+        sousRestaurantId: createServeurDto.sousRestaurantId,
       },
       include: {
         utilisateur: {
@@ -1026,8 +1040,16 @@ export class AdminEtablissementService {
             estActif: true,
           },
         },
+        sousRestaurant: {
+          select: {
+            id: true,
+            nom: true,
+          },
+        },
       },
     });
+
+    console.log('[creerServeur] Serveur créé avec succès:', serveur.id);
 
     return serveur;
   }

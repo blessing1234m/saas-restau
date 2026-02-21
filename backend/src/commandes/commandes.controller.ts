@@ -43,6 +43,35 @@ export class CommandesController {
     return serveur.id;
   }
 
+  // ========== TEST/HEALTH ==========
+
+  @Get('health')
+  async healthCheck(
+    @UtilisateurActuel() user,
+  ) {
+    try {
+      const serveur = await this.prisma.serveur.findUnique({
+        where: { utilisateurId: user.utilisateurId },
+        include: {
+          utilisateur: true,
+          etablissement: true,
+        },
+      });
+
+      return {
+        status: 'ok',
+        serveur: {
+          id: serveur?.id,
+          codeAgent: serveur?.utilisateur.codeAgent,
+          etablissement: serveur?.etablissement.nom,
+          estActif: serveur?.utilisateur.estActif,
+        },
+      };
+    } catch (error) {
+      throw new Error('Erreur lors de la vérification du serveur');
+    }
+  }
+
   // ========== COMMANDES ==========
 
   @Post()
