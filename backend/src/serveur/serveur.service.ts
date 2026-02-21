@@ -5,6 +5,53 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ServeurService {
   constructor(private prisma: PrismaService) {}
 
+  // Convert image data to base64 data URI
+  private convertImageToBase64(imageBuffer: Buffer, mimeType: string): string {
+    if (!imageBuffer) return '';
+    const base64 = imageBuffer.toString('base64');
+    return `data:${mimeType || 'image/jpeg'};base64,${base64}`;
+  }
+
+  // Transform category to include base64 image
+  private transformCategorie(categorie: any): any {
+    if (!categorie) return categorie;
+    return {
+      ...categorie,
+      photoAffichage: categorie.photoAffichage
+        ? this.convertImageToBase64(
+            categorie.photoAffichage,
+            categorie.photoTypeContenu || 'image/jpeg',
+          )
+        : null,
+    };
+  }
+
+  // Transform plat images to base64
+  private transformPlat(plat: any): any {
+    if (!plat) return plat;
+    return {
+      ...plat,
+      images: (plat.images || []).map((img) => ({
+        ...img,
+        donnees: img.donnees
+          ? this.convertImageToBase64(img.donnees, img.typeContenu || 'image/jpeg')
+          : null,
+      })),
+    };
+  }
+
+  // Transform menu data
+  private transformMenu(menu: any): any {
+    if (!menu) return menu;
+    return {
+      ...menu,
+      categories: (menu.categories || []).map((cat) => ({
+        ...this.transformCategorie(cat),
+        plats: (cat.plats || []).map((plat) => this.transformPlat(plat)),
+      })),
+    };
+  }
+
   private async obtenirEtablissementId(utilisateurId: string): Promise<string> {
     const serveur = await this.prisma.serveur.findUnique({
       where: { utilisateurId },
@@ -95,7 +142,7 @@ export class ServeurService {
       throw new NotFoundException('Sous-restaurant non trouvé');
     }
 
-    return sousRestaurant;
+    return this.transformMenu(sousRestaurant);
   }
 
   async obtenirCategories(utilisateurId: string, sousRestaurantId: string) {
@@ -106,13 +153,15 @@ export class ServeurService {
       throw new ForbiddenException('Vous n\'avez accès qu\'à votre sous-restaurant assigné');
     }
 
-    return this.prisma.categorie.findMany({
+    const categories = await this.prisma.categorie.findMany({
       where: {
         sousRestaurantId,
         estActive: true,
       },
       orderBy: { ordre: 'asc' },
     });
+
+    return categories.map((cat) => this.transformCategorie(cat));
   }
 
   async obtenirPlatsDuCategorie(
@@ -135,7 +184,7 @@ export class ServeurService {
       throw new NotFoundException('Catégorie non trouvée');
     }
 
-    return this.prisma.plat.findMany({
+    const plats = await this.prisma.plat.findMany({
       where: {
         categorieId,
         estActif: true,
@@ -147,5 +196,7 @@ export class ServeurService {
       },
       orderBy: { nom: 'asc' },
     });
+
+    return plats.map((plat) => this.transformPlat(plat));
   }
 }

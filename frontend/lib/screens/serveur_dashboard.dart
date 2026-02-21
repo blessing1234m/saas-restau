@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/serveur_menu_provider.dart';
 import 'package:frontend/providers/theme_provider.dart';
+import 'dart:convert';
 
 class ServeurDashboard extends StatefulWidget {
   const ServeurDashboard({super.key});
@@ -13,6 +14,9 @@ class ServeurDashboard extends StatefulWidget {
 
 class _ServeurDashboardState extends State<ServeurDashboard> {
   bool _isInitializing = true;
+  String? _selectedCategorieId;
+  Map<String, dynamic>? _selectedPlat;
+  int _currentImageIndex = 0;
 
   @override
   void initState() {
@@ -24,7 +28,7 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
     try {
       final authProvider = context.read<AuthProvider>();
       final menuProvider = context.read<ServeurMenuProvider>();
-      
+
       if (authProvider.token != null) {
         await menuProvider.initializeServerMenu(authProvider.token!);
       }
@@ -56,7 +60,9 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
           Consumer<ThemeProvider>(
             builder: (context, themeProvider, _) {
               return IconButton(
-                icon: Icon(themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+                icon: Icon(
+                  themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                ),
                 onPressed: () => themeProvider.toggleTheme(),
               );
             },
@@ -83,13 +89,17 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
     return Consumer<ServeurMenuProvider>(
       builder: (context, menuProvider, _) {
         // Show loading while initializing or loading menu
-        if (_isInitializing || (menuProvider.isLoading && menuProvider.sousRestaurantActuel == null)) {
+        if (_isInitializing ||
+            (menuProvider.isLoading &&
+                menuProvider.sousRestaurantActuel == null)) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    colorScheme.primary,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -102,22 +112,19 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
         }
 
         // Show error if no sous-restaurant assigned or error occurred
-        if (menuProvider.sousRestaurantActuel == null && menuProvider.errorMessage != null) {
+        if (menuProvider.sousRestaurantActuel == null &&
+            menuProvider.errorMessage != null) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 48,
-                  color: colorScheme.error,
-                ),
+                Icon(Icons.error_outline, size: 48, color: colorScheme.error),
                 const SizedBox(height: 16),
                 Text(
                   menuProvider.errorMessage ?? 'Erreur du chargement',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.error,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: colorScheme.error),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
@@ -130,190 +137,141 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
           );
         }
 
-        // Show menu interface once loaded
-        return Row(
-          children: [
-            // Sidebar with categories
-            Container(
-              width: 180,
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceVariant,
-                border: Border(
-                  right: BorderSide(color: colorScheme.outline.withOpacity(0.2)),
-                ),
-              ),
-              child: _buildCategoriesSidebar(context, authProvider, colorScheme),
-            ),
-            // Main content with plats
-            Expanded(
-              child: _buildPlatsContent(context, authProvider, colorScheme),
-            ),
-          ],
-        );
+        // Show categories grid or plats based on selection
+        if (_selectedCategorieId == null) {
+          return _buildCategoriesGrid(context, menuProvider, colorScheme);
+        } else {
+          return _buildPlatsView(context, menuProvider, colorScheme);
+        }
       },
     );
   }
 
-  Widget _buildCategoriesSidebar(
+  Widget _buildCategoriesGrid(
     BuildContext context,
-    AuthProvider authProvider,
+    ServeurMenuProvider menuProvider,
     ColorScheme colorScheme,
   ) {
-    return Consumer<ServeurMenuProvider>(
-      builder: (context, menuProvider, _) {
-        return Column(
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: colorScheme.primary,
-                border: Border(
-                  bottom: BorderSide(color: colorScheme.outline.withOpacity(0.1)),
-                ),
+    return Column(
+      children: [
+        // Header with restaurant name
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: colorScheme.primary,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    menuProvider.sousRestaurantActuel?['nom'] ?? 'Menu',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: colorScheme.onPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: () {
-                      final authProvider = context.read<AuthProvider>();
-                      if (authProvider.token != null && menuProvider.sousRestaurantActuel != null) {
-                        final idValue = menuProvider.sousRestaurantActuel!['id'];
-                        final idStr = idValue is String ? idValue : idValue.toString();
-                        menuProvider.loadMenu(
-                          idStr,
-                          authProvider.token!,
-                        );
-                      }
-                    },
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.refresh,
-                          size: 16,
-                          color: colorScheme.onPrimary.withOpacity(0.7),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Rafraîchir le menu',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onPrimary.withOpacity(0.7),
-                              ),
-                        ),
-                      ],
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Menu',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: colorScheme.onPrimary,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ),
-                ],
               ),
-            ),
-            // Categories list
-            Expanded(
-              child: menuProvider.categories.isEmpty
-                  ? Center(
-                      child: Text(
-                        'Aucune catégorie',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.outline,
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: menuProvider.categories.length,
-                      itemBuilder: (context, index) {
-                        final categorie = menuProvider.categories[index];
-                        final selectedId = menuProvider.categorieSelectionnee?['id'];
-                        final currentId = categorie['id'];
-                        final isSelected = selectedId != null && selectedId.toString() == currentId.toString();
-
-                        return _buildCategorieItem(
-                          context,
-                          categorie,
-                          isSelected,
-                          authProvider,
-                          colorScheme,
-                        );
-                      },
+              const SizedBox(height: 4),
+              Text(
+                menuProvider.sousRestaurantActuel?['nom'] ?? '',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onPrimary.withOpacity(0.7),
                     ),
+              ),
+            ],
+          ),
+        ),
+        // Categories grid
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 1.0,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
             ),
-          ],
-        );
-      },
+            itemCount: menuProvider.categories.length,
+            itemBuilder: (context, index) {
+              final categorie = menuProvider.categories[index];
+              return _buildCategorieCard(
+                context,
+                categorie,
+                colorScheme,
+                () {
+                  setState(() => _selectedCategorieId = _safeString(categorie['id']));
+                  final idValue = categorie['id'];
+                  final categorieId = idValue is String ? idValue : idValue.toString();
+                  final sousRestId = menuProvider.sousRestaurantActuel?['id'];
+                  final sousRestIdStr =
+                      sousRestId is String ? sousRestId : sousRestId.toString();
+                  
+                  final authProvider = context.read<AuthProvider>();
+                  menuProvider.selectCategorie(
+                    categorie,
+                    sousRestIdStr,
+                    authProvider.token!,
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildCategorieItem(
+  Widget _buildCategorieCard(
     BuildContext context,
     Map<String, dynamic> categorie,
-    bool isSelected,
-    AuthProvider authProvider,
     ColorScheme colorScheme,
+    VoidCallback onTap,
   ) {
     return GestureDetector(
-      onTap: () async {
-        final menuProvider = context.read<ServeurMenuProvider>();
-        final idValue = menuProvider.sousRestaurantActuel?['id'];
-        final sousRestId = idValue is String ? idValue : (idValue?.toString() ?? '');
-        await menuProvider.selectCategorie(
-          categorie,
-          sousRestId,
-          authProvider.token!,
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isSelected ? colorScheme.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
+      onTap: onTap,
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Category image if available
-            if (categorie['photoAffichage'] != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: Image.network(
-                  _safeString(categorie['photoAffichage']),
-                  height: 40,
-                  width: 100,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 40,
-                      width: 100,
-                      decoration: BoxDecoration(
-                        color: colorScheme.surfaceVariant,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Icon(
-                        Icons.image_not_supported,
-                        color: colorScheme.outline,
-                        size: 16,
-                      ),
-                    );
-                  },
+            // Category image
+            Expanded(
+              flex: 3,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
+                child: _buildCategoriImage(categorie, colorScheme),
+              ),
+            ),
+            // Category name
+            Expanded(
+              flex: 1,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _safeString(categorie['nom']),
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
-            const SizedBox(height: 8),
-            Text(
-              _safeString(categorie['nom']),
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
-                    fontWeight: FontWeight.bold,
-                  ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -321,147 +279,497 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
     );
   }
 
-  Widget _buildPlatsContent(
-    BuildContext context,
-    AuthProvider authProvider,
+  Widget _buildCategoriImage(
+    Map<String, dynamic> categorie,
     ColorScheme colorScheme,
   ) {
-    return Consumer<ServeurMenuProvider>(
-      builder: (context, menuProvider, _) {
-        if (menuProvider.sousRestaurantActuel == null) {
-          return Center(
-            child: Text(
-              'Sélectionnez un sous-restaurant',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: colorScheme.outline,
-                  ),
-            ),
-          );
-        }
+    final imageUrl = categorie['photoAffichage'];
+    if (imageUrl is String && imageUrl.isNotEmpty) {
+      // Check if it's a data URI
+      if (imageUrl.startsWith('data:')) {
+        return _buildMemoryImage(imageUrl, colorScheme);
+      }
+      // Otherwise use network image
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildCategoryPlaceholder(colorScheme);
+        },
+      );
+    }
+    return _buildCategoryPlaceholder(colorScheme);
+  }
 
-        if (menuProvider.categorieSelectionnee == null) {
-          return Center(
-            child: Text(
-              'Aucune catégorie sélectionnée',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: colorScheme.outline,
-                  ),
-            ),
-          );
-        }
-
-        if (menuProvider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (menuProvider.plats.isEmpty) {
-          return Center(
-            child: Text(
-              'Aucun plat dans cette catégorie',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: colorScheme.outline,
-                  ),
-            ),
-          );
-        }
-
-        return GridView.builder(
-          padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 0.75,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-          ),
-          itemCount: menuProvider.plats.length,
-          itemBuilder: (context, index) {
-            final plat = menuProvider.plats[index];
-            return _buildPlatCard(context, plat, colorScheme);
+  Widget _buildMemoryImage(
+    String dataUri,
+    ColorScheme colorScheme, {
+    double? width,
+    double? height,
+    BoxFit fit = BoxFit.cover,
+  }) {
+    try {
+      // Extract base64 data from data URI
+      final parts = dataUri.split(',');
+      if (parts.length == 2) {
+        final base64String = parts[1];
+        final bytes = base64Decode(base64String);
+        return Image.memory(
+          bytes,
+          width: width,
+          height: height,
+          fit: fit,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildCategoryPlaceholder(colorScheme);
           },
         );
-      },
+      }
+    } catch (e) {
+      return _buildCategoryPlaceholder(colorScheme);
+    }
+    return _buildCategoryPlaceholder(colorScheme);
+  }
+
+  Widget _buildCategoryPlaceholder(ColorScheme colorScheme) {
+    return Container(
+      color: colorScheme.surfaceVariant,
+      child: Center(
+        child: Icon(
+          Icons.restaurant_menu,
+          size: 40,
+          color: colorScheme.outline.withOpacity(0.5),
+        ),
+      ),
     );
   }
 
-  Widget _buildPlatCard(
+  Widget _buildPlatsView(
     BuildContext context,
-    Map<String, dynamic> plat,
+    ServeurMenuProvider menuProvider,
     ColorScheme colorScheme,
   ) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Plat image
-          Expanded(
-            flex: 3,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              child: _buildPlatImage(plat, colorScheme),
-            ),
+    // Show plat details if selected
+    if (_selectedPlat != null) {
+      return _buildPlatDetail(context, menuProvider, colorScheme);
+    }
+
+    final selectedCategorie = menuProvider.categorieSelectionnee;
+    
+    return Column(
+      children: [
+        // Header with back button and category name
+        Container(
+          width: double.infinity,
+          // padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: colorScheme.primary,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+
+              ),
+            ],
           ),
-          // Plat details
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: () {
+                  setState(() => _selectedCategorieId = null);
+                },
+                child: Icon(
+                  Icons.arrow_back,
+                  color: colorScheme.onPrimary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _safeString(selectedCategorie?['nom'] ?? 'Menu'),
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            color: colorScheme.onPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    Text(
+                      menuProvider.sousRestaurantActuel?['nom'] ?? '',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onPrimary.withOpacity(0.7),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Plats list
+        Expanded(
+          child: menuProvider.isLoading
+              ? Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      colorScheme.primary,
+                    ),
+                  ),
+                )
+              : menuProvider.plats.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Aucun plat disponible',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    )
+                  : GridView.builder(
+                      padding: const EdgeInsets.all(12),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 0.9,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                      ),
+                      itemCount: menuProvider.plats.length,
+                      itemBuilder: (context, index) {
+                        final plat = menuProvider.plats[index];
+                        return _buildPlatCard(
+                          context,
+                          plat,
+                          colorScheme,
+                          () {
+                            setState(() {
+                              _selectedPlat = plat;
+                              _currentImageIndex = 0;
+                            });
+                          },
+                        );
+                      },
+                    ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlatDetail(
+    BuildContext context,
+    ServeurMenuProvider menuProvider,
+    ColorScheme colorScheme,
+  ) {
+    if (_selectedPlat == null) {
+      return const SizedBox.shrink();
+    }
+
+    final plat = _selectedPlat!;
+    final images = (plat['images'] is List) ? (plat['images'] as List) : [];
+    final hasImages = images.isNotEmpty;
+
+    return Column(
+      children: [
+        // Header with back button
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: colorScheme.primary,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedPlat = null;
+                    _currentImageIndex = 0;
+                  });
+                },
+                child: Icon(
+                  Icons.arrow_back,
+                  color: colorScheme.onPrimary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  _safeString(plat['nom']),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: colorScheme.onPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Content
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Image gallery
+                if (hasImages)
+                  Column(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: _buildGalleryImage(images, colorScheme),
+                      ),
+                      const SizedBox(height: 12),
+                      // Image navigation controls
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GestureDetector(
+                            onTap: _currentImageIndex > 0
+                                ? () {
+                                    setState(
+                                        () => _currentImageIndex--);
+                                  }
+                                : null,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: _currentImageIndex > 0
+                                    ? colorScheme.primary
+                                    : colorScheme.surfaceVariant,
+                              ),
+                              child: Icon(
+                                Icons.chevron_left,
+                                color: _currentImageIndex > 0
+                                    ? colorScheme.onPrimary
+                                    : colorScheme.outline,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceVariant,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              '${_currentImageIndex + 1}/${images.length}',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap:
+                                _currentImageIndex < images.length - 1
+                                    ? () {
+                                        setState(
+                                            () => _currentImageIndex++);
+                                      }
+                                    : null,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: _currentImageIndex < images.length - 1
+                                    ? colorScheme.primary
+                                    : colorScheme.surfaceVariant,
+                              ),
+                              child: Icon(
+                                Icons.chevron_right,
+                                color: _currentImageIndex < images.length - 1
+                                    ? colorScheme.onPrimary
+                                    : colorScheme.outline,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  )
+                else
+                  Container(
+                    width: double.infinity,
+                    height: 250,
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceVariant,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.restaurant,
+                        size: 64,
+                        color: colorScheme.outline.withOpacity(0.5),
+                      ),
+                    ),
+                  ),
+                // Plat details
+                Text(
+                  _safeString(plat['nom']),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                // Price
+                Text(
+                  '${plat['prix']} FCFA',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                // Description
+                if (plat['description'] != null &&
+                    _safeString(plat['description']).isNotEmpty)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _safeString(plat['nom']),
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        'Description',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      if (plat['description'] != null && _safeString(plat['description']).isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            _safeString(plat['description']),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.outline,
-                                  fontSize: 10,
-                                ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _safeString(plat['description']),
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 24),
                     ],
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          '${plat['prix']} €',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.primary,
-                              ),
-                        ),
-                      ),
-                      // Icon(
-                      //   Icons.add_circle,
-                      //   color: colorScheme.primary,
-                      //   size: 16,
-                      // ),
-                    ],
-                  ),
-                ],
-              ),
+              ],
             ),
           ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGalleryImage(
+    List<dynamic> images,
+    ColorScheme colorScheme,
+  ) {
+    if (images.isEmpty || _currentImageIndex >= images.length) {
+      return Container(
+        width: double.infinity,
+        height: 250,
+        color: colorScheme.surfaceVariant,
+        child: Icon(
+          Icons.image_not_supported,
+          size: 48,
+          color: colorScheme.outline,
+        ),
+      );
+    }
+
+    final imageData = images[_currentImageIndex];
+    if (imageData is Map<String, dynamic>) {
+      final donnees = imageData['donnees'];
+      if (donnees is String && donnees.isNotEmpty) {
+        try {
+          // Check if it's a data URI
+          if (donnees.startsWith('data:')) {
+            return _buildMemoryImage(
+              donnees,
+              colorScheme,
+              width: double.infinity,
+              height: 250,
+            );
+          }
+          // Otherwise use network image
+          return Image.network(
+            donnees,
+            width: double.infinity,
+            height: 250,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return _buildPlaceholderImage(colorScheme);
+            },
+          );
+        } catch (e) {
+          return _buildPlaceholderImage(colorScheme);
+        }
+      }
+    }
+    return _buildPlaceholderImage(colorScheme);
+  }
+  Widget _buildPlatCard(
+    BuildContext context,
+    Map<String, dynamic> plat,
+    ColorScheme colorScheme,
+    VoidCallback? onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Plat image
+            Expanded(
+              flex: 1,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
+                child: _buildPlatImage(plat, colorScheme),
+              ),
+            ),
+            // Plat name
+            Expanded(
+              flex: 1,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _safeString(plat['nom']),
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '${plat['prix']} FCFA',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.primary,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -473,6 +781,11 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
       if (imageData is Map<String, dynamic>) {
         final donnees = imageData['donnees'];
         if (donnees is String && donnees.isNotEmpty) {
+          // Check if it's a data URI
+          if (donnees.startsWith('data:')) {
+            return _buildMemoryImage(donnees, colorScheme);
+          }
+          // Otherwise use network image
           return Image.network(
             donnees,
             fit: BoxFit.cover,
@@ -489,11 +802,7 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
   Widget _buildPlaceholderImage(ColorScheme colorScheme) {
     return Container(
       color: colorScheme.surfaceVariant,
-      child: Icon(
-        Icons.restaurant,
-        size: 40,
-        color: colorScheme.outline,
-      ),
+      child: Icon(Icons.restaurant, size: 40, color: colorScheme.outline),
     );
   }
 
@@ -528,4 +837,5 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
     if (value == null) return '';
     if (value is String) return value;
     return value.toString();
-  }}
+  }
+}
