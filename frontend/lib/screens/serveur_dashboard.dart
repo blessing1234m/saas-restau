@@ -360,7 +360,7 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
         // Header with back button and category name
         Container(
           width: double.infinity,
-          // padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: colorScheme.primary,
             boxShadow: [
@@ -430,7 +430,7 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
-                        childAspectRatio: 0.9,
+                        childAspectRatio: 1,
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
                       ),
@@ -744,7 +744,7 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
             Expanded(
               flex: 1,
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
