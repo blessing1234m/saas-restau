@@ -207,7 +207,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           size: 40,
                           color: colorScheme.secondary,
                         ),
-                        'Serveurs',
+                        'Compte Serveurs',
                         '$nbrServeurs',
                         colorScheme,
                         textTheme,
