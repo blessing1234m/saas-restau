@@ -369,7 +369,7 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
           padding: const EdgeInsets.all(16),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            childAspectRatio: 0.8,
+            childAspectRatio: 0.75,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
           ),
@@ -406,7 +406,7 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
           Expanded(
             flex: 2,
             child: Padding(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(4),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -450,11 +450,11 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
                               ),
                         ),
                       ),
-                      Icon(
-                        Icons.add_circle,
-                        color: colorScheme.primary,
-                        size: 16,
-                      ),
+                      // Icon(
+                      //   Icons.add_circle,
+                      //   color: colorScheme.primary,
+                      //   size: 16,
+                      // ),
                     ],
                   ),
                 ],
