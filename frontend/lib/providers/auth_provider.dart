@@ -34,11 +34,15 @@ class AuthProvider extends ChangeNotifier {
 
       if (token != null && userJson != null) {
         _token = token;
-        // Parse user from JSON
+        // Parse user from JSON format: utilisateurId|codeAgent|role|estActif|etablissementId|etablissementName
+        final parts = userJson.split('|');
         _user = AuthUser(
-          utilisateurId: userJson.split('|')[0],
-          codeAgent: userJson.split('|')[1],
-          role: userJson.split('|')[2],
+          utilisateurId: parts[0],
+          codeAgent: parts[1],
+          role: parts[2],
+          estActif: parts.length > 3 && parts[3].isNotEmpty ? parts[3].toLowerCase() == 'true' : true,
+          etablissementId: parts.length > 4 && parts[4].isNotEmpty ? parts[4] : null,
+          etablissementName: parts.length > 5 && parts[5].isNotEmpty ? parts[5] : null,
         );
         _isAuthenticated = true;
       }
@@ -69,6 +73,9 @@ class AuthProvider extends ChangeNotifier {
         utilisateurId: response.utilisateurId,
         codeAgent: response.codeAgent,
         role: response.role,
+        estActif: response.estActif ?? true,
+        etablissementId: response.etablissementId,
+        etablissementName: response.etablissementName,
       );
       _token = response.accessToken;
       _isAuthenticated = true;
@@ -80,14 +87,103 @@ class AuthProvider extends ChangeNotifier {
       );
       
       // Store user data as pipe-separated string for simplicity
+      // Format: utilisateurId|codeAgent|role|estActif|etablissementId|etablissementName
+      final estActifStr = (response.estActif ?? true) ? 'true' : 'false';
+      final etablissementStr = response.etablissementId ?? '';
+      final etablissementNameStr = response.etablissementName ?? '';
       await SecureStorageService.saveString(
         AppConstants.userStorageKey,
-        '${response.utilisateurId}|${response.codeAgent}|${response.role}',
+        '${response.utilisateurId}|${response.codeAgent}|${response.role}|$estActifStr|$etablissementStr|$etablissementNameStr',
       );
 
       _isLoading = false;
       notifyListeners();
       return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Change current user password
+  Future<bool> changePassword({
+    required String ancienMotDePasse,
+    required String nouveauMotDePasse,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      if (_token == null) {
+        throw Exception('Aucun token d\'authentification');
+      }
+
+      late PasswordChangeResponse response;
+
+      // Determine user role and call appropriate method
+      if (_user?.isSuperAdmin == true) {
+        response = await ApiService.changePasswordSuperAdmin(
+          ancienMotDePasse: ancienMotDePasse,
+          nouveauMotDePasse: nouveauMotDePasse,
+          token: _token!,
+        );
+      } else if (_user?.isAdminEtablissement == true) {
+        response = await ApiService.changePasswordAdminEtablissement(
+          ancienMotDePasse: ancienMotDePasse,
+          nouveauMotDePasse: nouveauMotDePasse,
+          token: _token!,
+        );
+      } else if (_user?.isServeur == true) {
+        response = await ApiService.changePasswordServeur(
+          ancienMotDePasse: ancienMotDePasse,
+          nouveauMotDePasse: nouveauMotDePasse,
+          token: _token!,
+        );
+      } else {
+        throw Exception('Rôle utilisateur non reconnu');
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return response.success;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Change server password (for AdminEtablissement only)
+  Future<bool> changeServerPassword({
+    required String serveurId,
+    required String nouveauMotDePasse,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      if (_token == null) {
+        throw Exception('Aucun token d\'authentification');
+      }
+
+      if (_user?.isAdminEtablissement != true) {
+        throw Exception('Seul un admin établissement peut changer le mot de passe d\'un serveur');
+      }
+
+      final response = await ApiService.changeServerPassword(
+        serveurId: serveurId,
+        nouveauMotDePasse: nouveauMotDePasse,
+        token: _token!,
+      );
+
+      _isLoading = false;
+      notifyListeners();
+      return response.success;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
       _isLoading = false;

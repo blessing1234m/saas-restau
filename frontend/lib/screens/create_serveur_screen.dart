@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/serveur_provider.dart';
 import 'package:frontend/providers/admin_etablissement_provider.dart';
+import 'package:frontend/models/index.dart';
 
 class CreateServeurScreen extends StatefulWidget {
   const CreateServeurScreen({super.key});
@@ -20,7 +21,6 @@ class _CreateServeurScreenState extends State<CreateServeurScreen> {
   bool _isLoading = false;
   bool _showPassword = false;
   bool _showConfirmPassword = false;
-  List<Map<String, dynamic>> _sousRestaurants = [];
 
   @override
   void initState() {
@@ -33,27 +33,11 @@ class _CreateServeurScreenState extends State<CreateServeurScreen> {
       final adminProvider = context.read<AdminEtablissementProvider>();
       final sousRest = adminProvider.sousRestaurants;
       
-      // Safely convert dynamic list to List<Map<String, dynamic>>
-      final converted = <Map<String, dynamic>>[];
-      for (final item in sousRest) {
-        if (item is Map<String, dynamic>) {
-          converted.add(item);
-        } else if (item is Map) {
-          converted.add(Map<String, dynamic>.from(item));
-        }
+      if (mounted && sousRest.isNotEmpty) {
+        setState(() {
+          _selectedSousRestaurantId = sousRest[0].id;
+        });
       }
-      
-      setState(() {
-        _sousRestaurants = converted;
-        if (_sousRestaurants.isNotEmpty) {
-          final firstId = _sousRestaurants[0]['id'];
-          if (firstId is String) {
-            _selectedSousRestaurantId = firstId;
-          } else {
-            _selectedSousRestaurantId = firstId.toString();
-          }
-        }
-      });
     } catch (e) {
       print('Erreur lors du chargement des sous-restaurants: $e');
     }
@@ -203,35 +187,35 @@ class _CreateServeurScreenState extends State<CreateServeurScreen> {
                 const SizedBox(height: 16),
 
                 // Sous-restaurant Field
-                DropdownButtonFormField<String>(
-                  value: _selectedSousRestaurantId,
-                  decoration: InputDecoration(
-                    labelText: 'Sous-restaurant assigné',
-                    hintText: 'Sélectionnez un sous-restaurant',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                Consumer<AdminEtablissementProvider>(
+                  builder: (context, adminProvider, _) => DropdownButtonFormField<String>(
+                    value: _selectedSousRestaurantId,
+                    decoration: InputDecoration(
+                      labelText: 'Sous-restaurant assigné',
+                      hintText: 'Sélectionnez un sous-restaurant',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.restaurant_menu),
                     ),
-                    prefixIcon: const Icon(Icons.restaurant_menu),
+                    items: adminProvider.sousRestaurants.map((sr) {
+                      return DropdownMenuItem<String>(
+                        value: sr.id,
+                        child: Text(sr.nom),
+                      );
+                    }).toList(),
+                    onChanged: _isLoading
+                        ? null
+                        : (value) {
+                            setState(() => _selectedSousRestaurantId = value);
+                          },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Veuillez sélectionner un sous-restaurant';
+                      }
+                      return null;
+                    },
                   ),
-                  items: _sousRestaurants.map((sous) {
-                    final id = sous['id'];
-                    final nom = sous['nom'];
-                    return DropdownMenuItem<String>(
-                      value: id is String ? id : id.toString(),
-                      child: Text(nom is String ? nom : nom.toString()),
-                    );
-                  }).toList(),
-                  onChanged: _isLoading
-                      ? null
-                      : (value) {
-                          setState(() => _selectedSousRestaurantId = value);
-                        },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Veuillez sélectionner un sous-restaurant';
-                    }
-                    return null;
-                  },
                 ),
                 const SizedBox(height: 16),
 

@@ -1,9 +1,14 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuthService } from '../auth/auth.service';
+import { ChangePasswordDto } from '../auth/dto/change-password.dto';
 
 @Injectable()
 export class ServeurService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private authService: AuthService,
+  ) {}
 
   // Convert image data to base64 data URI
   private convertImageToBase64(imageBuffer: Buffer, mimeType: string): string {
@@ -198,5 +203,45 @@ export class ServeurService {
     });
 
     return plats.map((plat) => this.transformPlat(plat));
+  }
+
+  // ========== GESTION DES MOTS DE PASSE ==========
+
+  async changerMotDePasseServeur(
+    utilisateurId: string,
+    changePasswordDto: ChangePasswordDto,
+  ) {
+    // Récupérer le serveur et son utilisateur
+    const serveur = await this.prisma.serveur.findUnique({
+      where: { utilisateurId },
+      include: { utilisateur: true },
+    });
+
+    if (!serveur) {
+      throw new NotFoundException('Serveur non trouvé');
+    }
+
+    // Vérifier l'ancien mot de passe
+    const estValide = await this.authService.verifierMotDePasse(
+      changePasswordDto.ancienMotDePasse,
+      serveur.utilisateur.motDePasse,
+    );
+
+    if (!estValide) {
+      throw new BadRequestException('L\'ancien mot de passe est incorrect');
+    }
+
+    // Hasher le nouveau mot de passe
+    const nouveauMotDePasseHash = await this.authService.hasherMotDePasse(
+      changePasswordDto.nouveauMotDePasse,
+    );
+
+    // Mettre à jour le mot de passe
+    await this.prisma.utilisateur.update({
+      where: { id: utilisateurId },
+      data: { motDePasse: nouveauMotDePasseHash },
+    });
+
+    return { message: 'Mot de passe changé avec succès' };
   }
 }

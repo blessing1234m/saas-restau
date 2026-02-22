@@ -3,7 +3,9 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { CreateSousRestaurantDto, UpdateSousRestaurantDto } from './dto/sous-restaurant.dto';
@@ -11,6 +13,7 @@ import { CreateTableDto, UpdateTableDto } from './dto/table.dto';
 import { CreateCategorieDto, UpdateCategorieDto } from './dto/categorie.dto';
 import { CreatePlatDto, UpdatePlatDto } from './dto/plat.dto';
 import { CreateServeurDto } from './dto/serveur.dto';
+import { ChangePasswordDto, ChangeUserPasswordDto } from '../auth/dto/change-password.dto';
 
 @Injectable()
 export class AdminEtablissementService {
@@ -1073,6 +1076,140 @@ export class AdminEtablissementService {
     });
   }
 
+  async modifierServeur(
+    adminId: string,
+    serveurId: string,
+    updateServeurDto: any,
+  ) {
+    const etablissementId = await this.obtenirEtablissementId(adminId);
+
+    const serveur = await this.prisma.serveur.findUnique({
+      where: { id: serveurId },
+    });
+
+    if (!serveur || serveur.etablissementId !== etablissementId) {
+      throw new NotFoundException('Serveur non trouvé ou non autorisé');
+    }
+
+    // Vérifier que le sousRestaurantId appartient à l'établissement si fourni
+    if (updateServeurDto.sousRestaurantId) {
+      const sousRestaurant = await this.prisma.sousRestaurant.findUnique({
+        where: { id: updateServeurDto.sousRestaurantId },
+      });
+
+      if (!sousRestaurant || sousRestaurant.etablissementId !== etablissementId) {
+        throw new ForbiddenException('Le sous-restaurant n\'appartient pas à votre établissement');
+      }
+    }
+
+    const serveurModifie = await this.prisma.serveur.update({
+      where: { id: serveurId },
+      data: updateServeurDto,
+      include: {
+        utilisateur: {
+          select: {
+            id: true,
+            codeAgent: true,
+            role: true,
+            estActif: true,
+          },
+        },
+        sousRestaurant: {
+          select: {
+            id: true,
+            nom: true,
+          },
+        },
+      },
+    });
+
+    return serveurModifie;
+  }
+
+  async modifierServeurComplet(
+    adminId: string,
+    serveurId: string,
+    updateServeurDto: any,
+  ) {
+    const etablissementId = await this.obtenirEtablissementId(adminId);
+
+    // Vérifier que le serveur existe et appartient à l'établissement
+    const serveur = await this.prisma.serveur.findUnique({
+      where: { id: serveurId },
+      include: { utilisateur: true },
+    });
+
+    if (!serveur || serveur.etablissementId !== etablissementId) {
+      throw new NotFoundException('Serveur non trouvé ou non autorisé');
+    }
+
+    // Vérifier que le sousRestaurantId appartient à l'établissement
+    if (updateServeurDto.sousRestaurantId) {
+      const sousRestaurant = await this.prisma.sousRestaurant.findUnique({
+        where: { id: updateServeurDto.sousRestaurantId },
+      });
+
+      if (!sousRestaurant || sousRestaurant.etablissementId !== etablissementId) {
+        throw new ForbiddenException('Le sous-restaurant n\'appartient pas à votre établissement');
+      }
+    }
+
+    // Préparer les mises à jour
+    const updateData: any = {
+      codeAgent: updateServeurDto.codeAgent,
+    };
+
+    // Mettre à jour le mot de passe si fourni
+    if (updateServeurDto.ancienMotDePasse && updateServeurDto.nouveauMotDePasse) {
+      // Vérifier l'ancien mot de passe
+      const utilisateur = serveur.utilisateur;
+      const isPasswordValid = await bcrypt.compare(
+        updateServeurDto.ancienMotDePasse,
+        utilisateur.motDePasse,
+      );
+
+      if (!isPasswordValid) {
+        throw new UnauthorizedException('L\'ancien mot de passe est incorrect');
+      }
+
+      // Hasher et mettre à jour le nouveau mot de passe
+      const hashedPassword = await bcrypt.hash(updateServeurDto.nouveauMotDePasse, 10);
+      updateData.motDePasse = hashedPassword;
+    }
+
+    // Mettre à jour l'utilisateur
+    await this.prisma.utilisateur.update({
+      where: { id: serveur.utilisateurId },
+      data: updateData,
+    });
+
+    // Mettre à jour le serveur (sous-restaurant)
+    const serveurModifie = await this.prisma.serveur.update({
+      where: { id: serveurId },
+      data: {
+        sousRestaurantId: updateServeurDto.sousRestaurantId,
+      },
+      include: {
+        utilisateur: {
+          select: {
+            id: true,
+            codeAgent: true,
+            role: true,
+            estActif: true,
+          },
+        },
+        sousRestaurant: {
+          select: {
+            id: true,
+            nom: true,
+          },
+        },
+      },
+    });
+
+    return serveurModifie;
+  }
+
   async basculerEtatServeur(adminId: string, serveurId: string) {
     const etablissementId = await this.obtenirEtablissementId(adminId);
 
@@ -1122,5 +1259,76 @@ export class AdminEtablissementService {
     });
 
     return { message: 'Serveur supprimé avec succès' };
+  }
+
+  // ========== GESTION DES MOTS DE PASSE ==========
+
+  async changerMotDePasseAdminEtablissement(
+    adminId: string,
+    changePasswordDto: ChangePasswordDto,
+  ) {
+    // Récupérer l'admin d'établissement
+    const adminEtablissement = await this.prisma.adminEtablissement.findUnique({
+      where: { utilisateurId: adminId },
+      include: { utilisateur: true },
+    });
+
+    if (!adminEtablissement) {
+      throw new NotFoundException('Admin d\'établissement non trouvé');
+    }
+
+    // Vérifier l'ancien mot de passe
+    const estValide = await this.authService.verifierMotDePasse(
+      changePasswordDto.ancienMotDePasse,
+      adminEtablissement.utilisateur.motDePasse,
+    );
+
+    if (!estValide) {
+      throw new BadRequestException('L\'ancien mot de passe est incorrect');
+    }
+
+    // Hasher le nouveau mot de passe
+    const nouveauMotDePasseHash = await this.authService.hasherMotDePasse(
+      changePasswordDto.nouveauMotDePasse,
+    );
+
+    // Mettre à jour le mot de passe
+    await this.prisma.utilisateur.update({
+      where: { id: adminId },
+      data: { motDePasse: nouveauMotDePasseHash },
+    });
+
+    return { message: 'Mot de passe changé avec succès' };
+  }
+
+  async changerMotDePasseServeur(
+    adminId: string,
+    serveurId: string,
+    changePasswordDto: ChangeUserPasswordDto,
+  ) {
+    // Vérifier que le serveur appartient à l'établissement de cet admin
+    const etablissementId = await this.obtenirEtablissementId(adminId);
+
+    const serveur = await this.prisma.serveur.findUnique({
+      where: { id: serveurId },
+      include: { utilisateur: true },
+    });
+
+    if (!serveur || serveur.etablissementId !== etablissementId) {
+      throw new NotFoundException('Serveur non trouvé');
+    }
+
+    // Hasher le nouveau mot de passe
+    const nouveauMotDePasseHash = await this.authService.hasherMotDePasse(
+      changePasswordDto.nouveauMotDePasse,
+    );
+
+    // Mettre à jour le mot de passe
+    await this.prisma.utilisateur.update({
+      where: { id: serveur.utilisateurId },
+      data: { motDePasse: nouveauMotDePasseHash },
+    });
+
+    return { message: 'Mot de passe du serveur changé avec succès' };
   }
 }

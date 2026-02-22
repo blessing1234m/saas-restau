@@ -19,7 +19,8 @@ import { CreateSousRestaurantDto, UpdateSousRestaurantDto } from './dto/sous-res
 import { CreateTableDto, UpdateTableDto } from './dto/table.dto';
 import { CreateCategorieDto, UpdateCategorieDto } from './dto/categorie.dto';
 import { CreatePlatDto, UpdatePlatDto } from './dto/plat.dto';
-import { CreateServeurDto } from './dto/serveur.dto';
+import { CreateServeurDto, UpdateServeurDto, UpdateServeurCompletDto } from './dto/serveur.dto';
+import { ChangePasswordDto, ChangeUserPasswordDto } from '../auth/dto/change-password.dto';
 
 @Controller('admin-etablissements')
 @UseGuards(AuthGuard('jwt'), RoleGuard, EtablissementActifGuard)
@@ -305,6 +306,24 @@ export class AdminEtablissementController {
     return this.adminService.obtenirServeurs(user.utilisateurId);
   }
 
+  @Patch('serveurs/:serveurId')
+  async modifierServeur(
+    @UtilisateurActuel() user,
+    @Param('serveurId') serveurId: string,
+    @Body() dto: UpdateServeurDto,
+  ) {
+    return this.adminService.modifierServeur(user.utilisateurId, serveurId, dto);
+  }
+
+  @Patch('serveurs/:serveurId/complet')
+  async modifierServeurComplet(
+    @UtilisateurActuel() user,
+    @Param('serveurId') serveurId: string,
+    @Body() dto: UpdateServeurCompletDto,
+  ) {
+    return this.adminService.modifierServeurComplet(user.utilisateurId, serveurId, dto);
+  }
+
   @Patch('serveurs/:serveurId/changer-etat')
   async basculerEtatServeur(
     @UtilisateurActuel() user,
@@ -322,5 +341,31 @@ export class AdminEtablissementController {
     @Param('serveurId') serveurId: string,
   ) {
     return this.adminService.supprimerServeur(user.utilisateurId, serveurId);
+  }
+
+  // ========== GESTION DES MOTS DE PASSE ==========
+
+  @Patch('changer-mot-de-passe')
+  async changerMotDePasseAdminEtablissement(
+    @UtilisateurActuel() user,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.adminService.changerMotDePasseAdminEtablissement(
+      user.utilisateurId,
+      changePasswordDto,
+    );
+  }
+
+  @Patch('serveurs/:serveurId/changer-mot-de-passe')
+  async changerMotDePasseServeur(
+    @UtilisateurActuel() user,
+    @Param('serveurId') serveurId: string,
+    @Body() changePasswordDto: ChangeUserPasswordDto,
+  ) {
+    return this.adminService.changerMotDePasseServeur(
+      user.utilisateurId,
+      serveurId,
+      changePasswordDto,
+    );
   }
 }

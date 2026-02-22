@@ -110,6 +110,72 @@ class ServeurProvider extends ChangeNotifier {
     }
   }
 
+  // Update serveur (e.g., change sous-restaurant)
+  Future<Serveur> updateServeur({
+    required String serveurId,
+    required String token,
+    String? sousRestaurantId,
+  }) async {
+    try {
+      final updatedServeur = await ApiService.updateServeur(
+        serveurId,
+        token,
+        sousRestaurantId: sousRestaurantId,
+      );
+      
+      // Update the serveur in the list
+      final index = _serveurs.indexWhere((s) => s.id == serveurId);
+      if (index != -1) {
+        _serveurs[index] = updatedServeur;
+      }
+      
+      _errorMessage = null;
+      notifyListeners();
+      return updatedServeur;
+    } catch (e) {
+      final errorMsg = e.toString().replaceAll('Exception: ', '');
+      _errorMessage = errorMsg;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  // Update serveur completely (code agent, sous-restaurant, password)
+  Future<Serveur> updateServeurComplet({
+    required String serveurId,
+    required String token,
+    required String codeAgent,
+    required String sousRestaurantId,
+    String? ancienMotDePasse,
+    String? nouveauMotDePasse,
+  }) async {
+    try {
+      final updatedServeur = await ApiService.updateServeurComplet(
+        serveurId: serveurId,
+        token: token,
+        codeAgent: codeAgent,
+        sousRestaurantId: sousRestaurantId,
+        ancienMotDePasse: ancienMotDePasse,
+        nouveauMotDePasse: nouveauMotDePasse,
+      );
+      
+      // Update the serveur in the list
+      final index = _serveurs.indexWhere((s) => s.id == serveurId);
+      if (index != -1) {
+        _serveurs[index] = updatedServeur;
+      }
+      
+      _errorMessage = null;
+      notifyListeners();
+      return updatedServeur;
+    } catch (e) {
+      final errorMsg = e.toString().replaceAll('Exception: ', '');
+      _errorMessage = errorMsg;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   // Delete serveur
   Future<void> deleteServeur(String serveurId, String token) async {
     try {

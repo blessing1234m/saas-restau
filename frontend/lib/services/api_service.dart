@@ -761,6 +761,62 @@ class ApiService {
     }
   }
 
+  /// Update serveur data (e.g., sousRestaurant assignment)
+  static Future<Serveur> updateServeur(
+    String serveurId,
+    String token, {
+    String? sousRestaurantId,
+  }) async {
+    final body = <String, dynamic>{};
+    if (sousRestaurantId != null) {
+      body['sousRestaurantId'] = sousRestaurantId;
+    }
+
+    final response = await patchWithAuth(
+      '/admin-etablissements/serveurs/$serveurId',
+      token,
+      body.isNotEmpty ? body : null,
+    );
+
+    if (response.statusCode == 200) {
+      return Serveur.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception(_extractErrorMessage(response));
+    }
+  }
+
+  /// Update serveur completely (code agent, sous-restaurant, password)
+  static Future<Serveur> updateServeurComplet({
+    required String serveurId,
+    required String token,
+    required String codeAgent,
+    required String sousRestaurantId,
+    String? ancienMotDePasse,
+    String? nouveauMotDePasse,
+  }) async {
+    final body = <String, dynamic>{
+      'codeAgent': codeAgent,
+      'sousRestaurantId': sousRestaurantId,
+    };
+
+    if (ancienMotDePasse != null && nouveauMotDePasse != null) {
+      body['ancienMotDePasse'] = ancienMotDePasse;
+      body['nouveauMotDePasse'] = nouveauMotDePasse;
+    }
+
+    final response = await patchWithAuth(
+      '/admin-etablissements/serveurs/$serveurId/complet',
+      token,
+      body,
+    );
+
+    if (response.statusCode == 200) {
+      return Serveur.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception(_extractErrorMessage(response));
+    }
+  }
+
   /// Toggle serveur state (actif/inactif)
   static Future<void> toggleServeurState(
     String serveurId,
@@ -879,6 +935,103 @@ class ApiService {
       return data.cast<Map<String, dynamic>>();
     } else {
       throw Exception('Erreur lors du chargement des plats');
+    }
+  }
+
+  // ========== PASSWORD MANAGEMENT ==========
+
+  /// Change SuperAdmin password
+  static Future<PasswordChangeResponse> changePasswordSuperAdmin({
+    required String ancienMotDePasse,
+    required String nouveauMotDePasse,
+    required String token,
+  }) async {
+    final response = await patchWithAuth(
+      '/super-admin/changer-mot-de-passe',
+      token,
+      {
+        'ancienMotDePasse': ancienMotDePasse,
+        'nouveauMotDePasse': nouveauMotDePasse,
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return PasswordChangeResponse.fromJson(jsonDecode(response.body));
+    } else if (response.statusCode == 400) {
+      throw Exception('L\'ancien mot de passe est incorrect');
+    } else {
+      throw Exception(_extractErrorMessage(response));
+    }
+  }
+
+  /// Change AdminEtablissement password
+  static Future<PasswordChangeResponse> changePasswordAdminEtablissement({
+    required String ancienMotDePasse,
+    required String nouveauMotDePasse,
+    required String token,
+  }) async {
+    final response = await patchWithAuth(
+      '/admin-etablissements/changer-mot-de-passe',
+      token,
+      {
+        'ancienMotDePasse': ancienMotDePasse,
+        'nouveauMotDePasse': nouveauMotDePasse,
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return PasswordChangeResponse.fromJson(jsonDecode(response.body));
+    } else if (response.statusCode == 400) {
+      throw Exception('L\'ancien mot de passe est incorrect');
+    } else {
+      throw Exception(_extractErrorMessage(response));
+    }
+  }
+
+  /// Change server password (by AdminEtablissement)
+  static Future<PasswordChangeResponse> changeServerPassword({
+    required String serveurId,
+    required String nouveauMotDePasse,
+    required String token,
+  }) async {
+    final response = await patchWithAuth(
+      '/admin-etablissements/serveurs/$serveurId/changer-mot-de-passe',
+      token,
+      {
+        'nouveauMotDePasse': nouveauMotDePasse,
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return PasswordChangeResponse.fromJson(jsonDecode(response.body));
+    } else if (response.statusCode == 404) {
+      throw Exception('Le serveur n\'existe pas');
+    } else {
+      throw Exception(_extractErrorMessage(response));
+    }
+  }
+
+  /// Change Serveur password
+  static Future<PasswordChangeResponse> changePasswordServeur({
+    required String ancienMotDePasse,
+    required String nouveauMotDePasse,
+    required String token,
+  }) async {
+    final response = await patchWithAuth(
+      '/serveurs/changer-mot-de-passe',
+      token,
+      {
+        'ancienMotDePasse': ancienMotDePasse,
+        'nouveauMotDePasse': nouveauMotDePasse,
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return PasswordChangeResponse.fromJson(jsonDecode(response.body));
+    } else if (response.statusCode == 400) {
+      throw Exception('L\'ancien mot de passe est incorrect');
+    } else {
+      throw Exception(_extractErrorMessage(response));
     }
   }
 

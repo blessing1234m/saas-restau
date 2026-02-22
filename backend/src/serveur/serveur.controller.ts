@@ -3,6 +3,8 @@ import {
   Get,
   Param,
   UseGuards,
+  Patch,
+  Body,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ServeurService } from './serveur.service';
@@ -10,6 +12,7 @@ import { RoleGuard } from '../auth/guards/role.guard';
 import { EtablissementActifGuard } from '../auth/guards/etablissement-actif.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UtilisateurActuel } from '../auth/decorators/utilisateur-actuel.decorator';
+import { ChangePasswordDto } from '../auth/dto/change-password.dto';
 
 @Controller('serveurs')
 @UseGuards(AuthGuard('jwt'), RoleGuard, EtablissementActifGuard)
@@ -68,4 +71,18 @@ export class ServeurController {
       categorieId,
     );
   }
+
+  // ========== GESTION DES MOTS DE PASSE ==========
+
+  @Patch('changer-mot-de-passe')
+  async changerMotDePasseServeur(
+    @UtilisateurActuel() user,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.serveurService.changerMotDePasseServeur(
+      user.utilisateurId,
+      changePasswordDto,
+    );
+  }
 }
+

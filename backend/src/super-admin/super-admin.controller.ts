@@ -17,6 +17,8 @@ import { CreateAdminEtablissementDto } from './dto/create-admin-etablissement.dt
 import { UpdateAdminEtablissementDto } from './dto/update-admin-etablissement.dto';
 import { RoleGuard } from '../auth/guards/role.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { UtilisateurActuel } from '../auth/decorators/utilisateur-actuel.decorator';
+import { ChangePasswordDto } from '../auth/dto/change-password.dto';
 
 @Controller('super-admin')
 @UseGuards(AuthGuard('jwt'), RoleGuard)
@@ -108,5 +110,19 @@ export class SuperAdminController {
   @Roles('SUPER_ADMIN')
   async supprimerAdminEtablissement(@Param('id') id: string) {
     return this.superAdminService.supprimerAdminEtablissement(id);
+  }
+
+  // ========== GESTION DES MOTS DE PASSE ==========
+
+  @Patch('changer-mot-de-passe')
+  @Roles('SUPER_ADMIN')
+  async changerMotDePasseSuperAdmin(
+    @UtilisateurActuel() user,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.superAdminService.changerMotDePasseSuperAdmin(
+      user.utilisateurId,
+      changePasswordDto,
+    );
   }
 }

@@ -6,3 +6,4 @@ export 'sous_restaurant.dart';
 export 'categorie.dart';
 export 'plat.dart';
 export 'serveur.dart';
+export 'password_change.dart';

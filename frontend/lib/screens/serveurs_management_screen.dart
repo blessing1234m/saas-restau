@@ -5,6 +5,7 @@ import 'package:frontend/providers/serveur_provider.dart';
 import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/models/serveur.dart';
 import 'package:frontend/screens/create_serveur_screen.dart';
+import 'package:frontend/screens/edit_serveur_screen.dart';
 
 class ServeursManagementScreen extends StatefulWidget {
   const ServeursManagementScreen({super.key});
@@ -260,6 +261,20 @@ class _ServeursManagementScreenState extends State<ServeursManagementScreen> {
         ),
         trailing: PopupMenuButton(
           itemBuilder: (context) => [
+            PopupMenuItem(
+              onTap: () async {
+                final result = await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => EditServeurScreen(serveur: serveur),
+                  ),
+                );
+
+                if (result == true && mounted) {
+                  serveurProvider.loadServeurs(authProvider.token!);
+                }
+              },
+              child: const Text('Modifier'),
+            ),
             PopupMenuItem(
               onTap: () async {
                 try {

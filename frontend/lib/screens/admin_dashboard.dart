@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/admin_etablissement_provider.dart';
 import 'package:frontend/providers/theme_provider.dart';
+import 'package:frontend/screens/profile_screen.dart';
+import 'package:frontend/screens/change_password_screen.dart';
 import 'package:frontend/screens/menu_management_screen.dart';
 import 'package:frontend/screens/serveurs_management_screen.dart';
 
@@ -46,6 +48,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 tooltip: themeProvider.isDarkMode ? 'Mode clair' : 'Mode sombre',
               );
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
+                ),
+              );
+            },
+            tooltip: 'Mon profil',
           ),
           IconButton(
             icon: const Icon(Icons.logout),

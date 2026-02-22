@@ -5,6 +5,7 @@ import { CreateEtablissementDto } from './dto/create-etablissement.dto';
 import { UpdateEtablissementDto } from './dto/update-etablissement.dto';
 import { CreateAdminEtablissementDto } from './dto/create-admin-etablissement.dto';
 import { UpdateAdminEtablissementDto } from './dto/update-admin-etablissement.dto';
+import { ChangePasswordDto } from '../auth/dto/change-password.dto';
 
 @Injectable()
 export class SuperAdminService {
@@ -377,5 +378,49 @@ export class SuperAdminService {
     });
 
     return { message: 'Admin d\'établissement supprimé avec succès' };
+  }
+
+  // GESTION DES MOTS DE PASSE
+
+  async changerMotDePasseSuperAdmin(
+    superAdminId: string,
+    changePasswordDto: ChangePasswordDto,
+  ) {
+    // Récupérer le superAdmin
+    const utilisateur = await this.prisma.utilisateur.findUnique({
+      where: { id: superAdminId },
+    });
+
+    if (!utilisateur) {
+      throw new NotFoundException('SuperAdmin non trouvé');
+    }
+
+    // Vérifier que le rôle est bien SUPER_ADMIN
+    if (utilisateur.role !== 'SUPER_ADMIN') {
+      throw new BadRequestException('Cet utilisateur n\'est pas un SuperAdmin');
+    }
+
+    // Vérifier l'ancien mot de passe
+    const estValide = await this.authService.verifierMotDePasse(
+      changePasswordDto.ancienMotDePasse,
+      utilisateur.motDePasse,
+    );
+
+    if (!estValide) {
+      throw new BadRequestException('L\'ancien mot de passe est incorrect');
+    }
+
+    // Hasher le nouveau mot de passe
+    const nouveauMotDePasseHash = await this.authService.hasherMotDePasse(
+      changePasswordDto.nouveauMotDePasse,
+    );
+
+    // Mettre à jour le mot de passe
+    await this.prisma.utilisateur.update({
+      where: { id: superAdminId },
+      data: { motDePasse: nouveauMotDePasseHash },
+    });
+
+    return { message: 'Mot de passe changé avec succès' };
   }
 }
