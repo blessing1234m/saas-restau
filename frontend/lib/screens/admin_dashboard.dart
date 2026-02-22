@@ -50,17 +50,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const ProfileScreen(),
-                ),
-              );
-            },
-            tooltip: 'Mon profil',
-          ),
-          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
               _showLogoutDialog(context);
@@ -334,13 +323,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       const SizedBox(height: 8),
                       _buildActionButton(
                         context,
-                        Icons.settings,
-                        'Paramètres',
-                        'Configurer votre établissement',
+                        Icons.security,
+                        'Profil',
+                        'Voir mon profil et changer mon mot de passe',
                         colorScheme,
                         textTheme,
                         onTap: () {
-                          // TODO: Implement settings
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ProfileScreen(),
+                            ),
+                          );
                         },
                       ),
                     ],

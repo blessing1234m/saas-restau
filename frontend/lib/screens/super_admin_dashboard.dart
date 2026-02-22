@@ -52,6 +52,17 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard>
       appBar: AppBar(
         title: const Text('Super Admin Dashboard', style: TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.person),
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const ProfileScreen(),
+              ),
+            );
+          },
+          tooltip: 'Mon profil',
+        ),
         actions: [
           Consumer<ThemeProvider>(
             builder: (context, themeProvider, _) => IconButton(
@@ -59,17 +70,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard>
               onPressed: () => themeProvider.toggleTheme(),
               tooltip: themeProvider.isDarkMode ? 'Mode clair' : 'Mode sombre',
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const ProfileScreen(),
-                ),
-              );
-            },
-            tooltip: 'Mon profil',
           ),
           IconButton(
             icon: const Icon(Icons.logout),
