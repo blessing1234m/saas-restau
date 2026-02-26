@@ -2,6 +2,7 @@ class AppConstants {
   // API Configuration
   static const String apiBaseUrl = 'http://192.168.1.92:3000/api';
   static const String authEndpoint = '/auth/login';
+  static const String publicMenuEndpoint = '/public/sous-restaurants';
   
   // Secure Storage Keys
   static const String tokenStorageKey = 'auth_token';

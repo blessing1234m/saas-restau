@@ -9,3 +9,4 @@ export 'edit_serveur_screen.dart';
 export 'etablissements_management_screen.dart';
 export 'serveurs_management_screen.dart';
 export 'create_serveur_screen.dart';
+export 'qr_menu_screen.dart';

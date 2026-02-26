@@ -57,6 +57,15 @@ export class ServeurService {
     };
   }
 
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   private async obtenirEtablissementId(utilisateurId: string): Promise<string> {
     const serveur = await this.prisma.serveur.findUnique({
       where: { utilisateurId },
@@ -148,6 +157,336 @@ export class ServeurService {
     }
 
     return this.transformMenu(sousRestaurant);
+  }
+
+  async obtenirMenuPublic(sousRestaurantId: string) {
+    const sousRestaurant = await this.prisma.sousRestaurant.findUnique({
+      where: { id: sousRestaurantId },
+      include: {
+        etablissement: true,
+        categories: {
+          where: { estActive: true },
+          include: {
+            plats: {
+              where: { estActif: true },
+              include: {
+                images: {
+                  orderBy: { ordre: 'asc' },
+                },
+              },
+              orderBy: { nom: 'asc' },
+            },
+          },
+          orderBy: { ordre: 'asc' },
+        },
+      },
+    });
+
+    if (!sousRestaurant || !sousRestaurant.estActif) {
+      throw new NotFoundException('Menu non disponible');
+    }
+
+    if (!sousRestaurant.etablissement?.estActif) {
+      throw new NotFoundException('Etablissement inactif');
+    }
+
+    return this.transformMenu(sousRestaurant);
+  }
+
+  async genererMenuPublicHtml(sousRestaurantId: string): Promise<string> {
+    const menu = await this.obtenirMenuPublic(sousRestaurantId);
+    const etablissement = menu.etablissement?.nom
+      ? this.escapeHtml(menu.etablissement.nom)
+      : 'Restaurant';
+    const sousRestaurantNom = this.escapeHtml(menu.nom || 'Menu');
+    const categories = menu.categories || [];
+    const categoryCardsHtml = categories
+      .map((cat, index) => {
+        const catId = `cat-${index}`;
+        const catNom = this.escapeHtml(cat.nom || 'Categorie');
+        const catImage = cat.photoAffichage
+          ? `<img class="cat-image" src="${cat.photoAffichage}" alt="${catNom}" loading="lazy" />`
+          : '<div class="cat-image cat-image-placeholder">🍽</div>';
+        const platCount = Array.isArray(cat.plats) ? cat.plats.length : 0;
+
+        return `
+          <button type="button" class="cat-card" data-target="${catId}" data-name="${catNom}">
+            <div class="cat-left">
+              <p class="cat-title">${catNom}</p>
+              <p class="cat-sub">${platCount} plat${platCount > 1 ? 's' : ''}</p>
+            </div>
+            ${catImage}
+          </button>
+        `;
+      })
+      .join('');
+
+    const categoryPanelsHtml = categories
+      .map((cat, index) => {
+        const catId = `cat-${index}`;
+        const catNom = this.escapeHtml(cat.nom || 'Categorie');
+        const catDescription = cat.description
+          ? `<p class="cat-description">${this.escapeHtml(cat.description)}</p>`
+          : '';
+
+        const platsHtml = (cat.plats || [])
+          .map((plat) => {
+            const nom = this.escapeHtml(plat.nom || 'Plat');
+            const description = plat.description
+              ? `<p class="plat-description">${this.escapeHtml(plat.description)}</p>`
+              : '';
+            const prixValue = Number(plat.prix);
+            const prix = Number.isFinite(prixValue)
+              ? `${prixValue.toLocaleString('fr-FR')} FCFA`
+              : 'Prix indisponible';
+            const imageUrl =
+              plat.images && plat.images.length > 0 ? plat.images[0]?.donnees : null;
+            const image = imageUrl
+              ? `<img class="plat-image" src="${imageUrl}" alt="${nom}" loading="lazy" />`
+              : '<div class="plat-image plat-placeholder">Aucune image</div>';
+
+            return `
+              <article class="plat">
+                ${image}
+                <div class="plat-content">
+                  <div class="plat-header">
+                    <h3>${nom}</h3>
+                    <span class="plat-price">${prix}</span>
+                  </div>
+                  ${description}
+                </div>
+              </article>
+            `;
+          })
+          .join('');
+
+        return `
+          <section class="plats-panel" id="${catId}" hidden>
+            <h2>${catNom}</h2>
+            ${catDescription}
+            <div class="plats">${platsHtml || '<p class="empty">Aucun plat disponible.</p>'}</div>
+          </section>
+        `;
+      })
+      .join('');
+
+    return `
+      <!doctype html>
+      <html lang="fr">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width,initial-scale=1" />
+          <title>${sousRestaurantNom} - Menu</title>
+          <style>
+            :root {
+              color-scheme: light;
+              --bg: #f6f7fb;
+              --card: #ffffff;
+              --text: #171717;
+              --muted: #666;
+              --brand: #0f766e;
+              --brand-soft: #d8f3ef;
+              --line: #e5e7eb;
+            }
+            * { box-sizing: border-box; }
+            body {
+              margin: 0;
+              font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+              color: var(--text);
+              background: radial-gradient(circle at top right, #e8faf7 0%, var(--bg) 45%);
+            }
+            .wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 56px; }
+            .hero {
+              background: linear-gradient(135deg, #0f766e, #115e59);
+              color: #fff;
+              border-radius: 16px;
+              padding: 20px;
+              box-shadow: 0 12px 24px rgba(15, 118, 110, 0.22);
+              margin-bottom: 18px;
+            }
+            .hero h1 { margin: 0 0 4px; font-size: 28px; }
+            .hero p { margin: 0; opacity: .92; }
+            .toolbar {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              margin-bottom: 12px;
+            }
+            .back-btn {
+              border: 0;
+              background: var(--brand);
+              color: #fff;
+              border-radius: 10px;
+              padding: 10px 12px;
+              font-weight: 700;
+              cursor: pointer;
+            }
+            .toolbar-title {
+              margin: 0;
+              font-size: 20px;
+            }
+            .cat-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+              gap: 12px;
+            }
+            .cat-card {
+              border: 1px solid var(--line);
+              background: #fff;
+              border-radius: 16px;
+              padding: 14px;
+              min-height: 112px;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 12px;
+              width: 100%;
+              text-align: left;
+              cursor: pointer;
+            }
+            .cat-card:active { transform: scale(0.99); }
+            .cat-left { min-width: 0; }
+            .cat-title {
+              margin: 0;
+              font-size: 24px;
+              font-weight: 800;
+              color: #0f1f17;
+            }
+            .cat-sub {
+              margin: 6px 0 0;
+              font-size: 13px;
+              color: var(--muted);
+            }
+            .cat-image {
+              width: 84px;
+              height: 84px;
+              border-radius: 22px;
+              object-fit: cover;
+              flex-shrink: 0;
+              background: var(--brand-soft);
+            }
+            .cat-image-placeholder {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 30px;
+            }
+            .plats-panel {
+              background: var(--card);
+              border: 1px solid var(--line);
+              border-radius: 14px;
+              padding: 14px;
+            }
+            .plats-panel h2 { margin: 0 0 6px; font-size: 21px; }
+            .cat-description { margin: 0 0 14px; color: var(--muted); }
+            .plats { display: grid; grid-template-columns: 1fr; gap: 12px; }
+            .plat {
+              display: grid;
+              grid-template-columns: 110px 1fr;
+              gap: 12px;
+              border: 1px solid var(--line);
+              border-radius: 12px;
+              overflow: hidden;
+              background: #fff;
+            }
+            .plat-image {
+              width: 100%;
+              height: 100%;
+              min-height: 104px;
+              object-fit: cover;
+              background: #f3f4f6;
+            }
+            .plat-placeholder {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              min-height: 104px;
+              background: #f3f4f6;
+              color: #777;
+              font-size: 12px;
+              text-align: center;
+              padding: 8px;
+            }
+            .plat-content { padding: 10px; }
+            .plat-header {
+              display: flex;
+              gap: 8px;
+              justify-content: space-between;
+              align-items: baseline;
+            }
+            .plat-header h3 { margin: 0; font-size: 17px; }
+            .plat-price { font-weight: 700; color: var(--brand); white-space: nowrap; }
+            .plat-description { margin: 8px 0 0; color: var(--muted); line-height: 1.35; }
+            .empty { color: var(--muted); margin: 0; }
+            @media (max-width: 680px) {
+              .hero h1 { font-size: 24px; }
+              .cat-title { font-size: 21px; }
+              .cat-image { width: 78px; height: 78px; }
+              .plat { grid-template-columns: 1fr; }
+              .plat-image, .plat-placeholder { min-height: 180px; }
+            }
+          </style>
+        </head>
+        <body>
+          <main class="wrap">
+            <header class="hero">
+              <p>${etablissement}</p>
+              <h1>${sousRestaurantNom}</h1>
+              <p>Menu en ligne</p>
+            </header>
+            <section id="categoriesView">
+              <div class="cat-grid">
+                ${categoryCardsHtml || '<p class="empty">Le menu est vide pour le moment.</p>'}
+              </div>
+            </section>
+            <section id="platsView" hidden>
+              <div class="toolbar">
+                <button id="backToCategories" type="button" class="back-btn">Retour</button>
+                <h2 id="selectedCategoryTitle" class="toolbar-title"></h2>
+              </div>
+              ${categoryPanelsHtml}
+            </section>
+          </main>
+          <script>
+            (function() {
+              var categoriesView = document.getElementById('categoriesView');
+              var platsView = document.getElementById('platsView');
+              var backBtn = document.getElementById('backToCategories');
+              var selectedTitle = document.getElementById('selectedCategoryTitle');
+              var cards = document.querySelectorAll('.cat-card');
+              var panels = document.querySelectorAll('.plats-panel');
+
+              function hideAllPanels() {
+                panels.forEach(function(panel) { panel.hidden = true; });
+              }
+
+              cards.forEach(function(card) {
+                card.addEventListener('click', function() {
+                  var target = card.getAttribute('data-target');
+                  var name = card.getAttribute('data-name') || '';
+                  var panel = document.getElementById(target);
+                  if (!panel) return;
+                  hideAllPanels();
+                  panel.hidden = false;
+                  selectedTitle.textContent = name;
+                  categoriesView.hidden = true;
+                  platsView.hidden = false;
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+              });
+
+              backBtn.addEventListener('click', function() {
+                hideAllPanels();
+                platsView.hidden = true;
+                categoriesView.hidden = false;
+                selectedTitle.textContent = '';
+              });
+            })();
+          </script>
+        </body>
+      </html>
+    `;
   }
 
   async obtenirCategories(utilisateurId: string, sousRestaurantId: string) {

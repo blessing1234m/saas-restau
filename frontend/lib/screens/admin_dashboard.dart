@@ -4,9 +4,9 @@ import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/admin_etablissement_provider.dart';
 import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/screens/profile_screen.dart';
-import 'package:frontend/screens/change_password_screen.dart';
 import 'package:frontend/screens/menu_management_screen.dart';
 import 'package:frontend/screens/serveurs_management_screen.dart';
+import 'package:frontend/screens/qr_menu_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -19,13 +19,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      final authProvider = context.read<AuthProvider>();
-      final adminProvider = context.read<AdminEtablissementProvider>();
-      if (authProvider.token != null) {
-        adminProvider.loadEtablissement(authProvider.token!);
-      }
-    });
+    final authProvider = context.read<AuthProvider>();
+    final adminProvider = context.read<AdminEtablissementProvider>();
+    if (authProvider.token != null) {
+      adminProvider.loadEtablissement(authProvider.token!);
+    }
   }
 
   @override
@@ -316,6 +314,23 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => const ServeursManagementScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _buildActionButton(
+                        context,
+                        Icons.qr_code_2,
+                        'QR des menus',
+                        'Generer un QR code pour chaque sous-restaurant',
+                        colorScheme,
+                        textTheme,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const QrMenuScreen(),
                             ),
                           );
                         },
