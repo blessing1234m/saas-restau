@@ -243,10 +243,10 @@ export class ServeurService {
             let imagesSection: string;
             if (plat.images && plat.images.length > 0) {
               const imgsHtml = plat.images
-                .map((img) => {
+                .map((img, idx) => {
                   const url = img.donnees;
                   return url
-                    ? `<img class="plat-image" src="${url}" alt="${nom}" loading="lazy" />`
+                    ? `<img class="plat-image clickable-image" data-fullscreen-src="${url}" data-image-index="${idx}" src="${url}" alt="${nom}" loading="lazy" style="cursor: pointer;" />`
                     : '';
                 })
                 .join('');
@@ -441,12 +441,70 @@ export class ServeurService {
             .plat-price { font-weight: 700; color: var(--brand); white-space: nowrap; }
             .plat-description { margin: 8px 0 0; color: var(--muted); line-height: 1.35; }
             .empty { color: var(--muted); margin: 0; }
+            /* Modal pour les images fullscreen */
+            .image-modal {
+              display: none;
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              background: rgba(0, 0, 0, 0.95);
+              z-index: 1000;
+              justify-content: center;
+              align-items: center;
+              padding: 20px;
+            }
+            .image-modal.active {
+              display: flex;
+            }
+            .image-modal-content {
+              position: relative;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 12px;
+              max-width: 90vw;
+              max-height: 90vh;
+            }
+            .image-modal-img {
+              max-width: 100%;
+              max-height: 85vh;
+              object-fit: contain;
+              border-radius: 8px;
+            }
+            .image-modal-close {
+              position: absolute;
+              top: 10px;
+              right: 10px;
+              background: rgba(255, 255, 255, 0.3);
+              border: none;
+              color: white;
+              font-size: 28px;
+              width: 40px;
+              height: 40px;
+              border-radius: 50%;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              transition: background 0.2s;
+            }
+            .image-modal-close:hover {
+              background: rgba(255, 255, 255, 0.5);
+            }
+            .image-modal-counter {
+              color: white;
+              font-size: 14px;
+              margin-top: 8px;
+            }
             @media (max-width: 680px) {
               .hero h1 { font-size: 24px; }
               .cat-title { font-size: 21px; }
               .cat-image { width: 78px; height: 78px; }
               .plat { grid-template-columns: 1fr; }
               .plat-image, .plat-placeholder { min-height: 180px; }
+              .image-modal-img { max-height: 80vh; }
             }
           </style>
         </head>
@@ -470,6 +528,14 @@ export class ServeurService {
               ${categoryPanelsHtml}
             </section>
           </main>
+          <!-- Modal pour afficher les images en fullscreen -->
+          <div id="imageModal" class="image-modal">
+            <div class="image-modal-content">
+              <button id="modalClose" class="image-modal-close">&times;</button>
+              <img id="modalImage" class="image-modal-img" src="" alt="Image plein écran" />
+              <div id="imageCounter" class="image-modal-counter"></div>
+            </div>
+          </div>
           <script>
             (function() {
               var categoriesView = document.getElementById('categoriesView');
@@ -478,11 +544,92 @@ export class ServeurService {
               var selectedTitle = document.getElementById('selectedCategoryTitle');
               var cards = document.querySelectorAll('.cat-card');
               var panels = document.querySelectorAll('.plats-panel');
+              var imageModal = document.getElementById('imageModal');
+              var modalImage = document.getElementById('modalImage');
+              var modalClose = document.getElementById('modalClose');
+              var imageCounter = document.getElementById('imageCounter');
+              var clickableImages = document.querySelectorAll('.clickable-image');
 
               function hideAllPanels() {
                 panels.forEach(function(panel) { panel.hidden = true; });
               }
 
+              // Récupérer toutes les images associées au parent de l'image cliquée
+              function getImageGroup(element) {
+                var imageContainer = element.closest('.plat-images') || element.parentElement;
+                return imageContainer.querySelectorAll('.plat-image[data-fullscreen-src]');
+              }
+
+              // Afficher la modal avec une image
+              function showImageModal(imageElement, imageIndex) {
+                var imageGroup = getImageGroup(imageElement);
+                var src = imageElement.getAttribute('data-fullscreen-src');
+                modalImage.src = src;
+                imageModal.classList.add('active');
+                
+                // Mettre à jour le compteur
+                if (imageGroup.length > 1) {
+                  imageCounter.textContent = (imageIndex + 1) + ' / ' + imageGroup.length;
+                  
+                  // Permettre la navigation avec les touches
+                  document.currentImageGroup = imageGroup;
+                  document.currentImageIndex = imageIndex;
+                } else {
+                  imageCounter.textContent = '';
+                }
+              }
+
+              // Fermer la modal
+              function closeImageModal() {
+                imageModal.classList.remove('active');
+                document.currentImageGroup = null;
+              }
+
+              // Gestion des clics sur les images
+              clickableImages.forEach(function(img) {
+                img.addEventListener('click', function(e) {
+                  e.preventDefault();
+                  var index = parseInt(this.getAttribute('data-image-index'), 10);
+                  showImageModal(this, index);
+                });
+              });
+
+              // Fermer avec le bouton
+              modalClose.addEventListener('click', function() {
+                closeImageModal();
+              });
+
+              // Fermer en cliquant en dehors
+              imageModal.addEventListener('click', function(e) {
+                if (e.target === imageModal) {
+                  closeImageModal();
+                }
+              });
+
+              // Navigation avec touches fléchées
+              document.addEventListener('keydown', function(e) {
+                if (!imageModal.classList.contains('active')) return;
+                
+                var imageGroup = document.currentImageGroup;
+                var currentIndex = document.currentImageIndex;
+                
+                if (!imageGroup) return;
+                
+                if (e.key === 'ArrowRight') {
+                  e.preventDefault();
+                  var nextIndex = (currentIndex + 1) % imageGroup.length;
+                  showImageModal(imageGroup[nextIndex], nextIndex);
+                } else if (e.key === 'ArrowLeft') {
+                  e.preventDefault();
+                  var prevIndex = (currentIndex - 1 + imageGroup.length) % imageGroup.length;
+                  showImageModal(imageGroup[prevIndex], prevIndex);
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  closeImageModal();
+                }
+              });
+
+              // Gestion des catégories existante
               cards.forEach(function(card) {
                 card.addEventListener('click', function() {
                   var target = card.getAttribute('data-target');

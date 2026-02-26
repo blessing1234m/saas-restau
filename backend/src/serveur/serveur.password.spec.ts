@@ -165,5 +165,51 @@ describe('ServeurService - Password Management', () => {
       // la structure de conteneur pour multi‑images doit être présente
       expect(html).toContain('class="plat-images"');
     });
+
+    it('ajoute les attributs de clic sur les images', async () => {
+      const sampleMenu = {
+        etablissement: { nom: 'TestEtab' },
+        nom: 'TestMenu',
+        categories: [
+          {
+            nom: 'Plats',
+            description: null,
+            plats: [
+              {
+                nom: 'Pizza',
+                description: null,
+                prix: 10,
+                images: [
+                  { donnees: 'data:image/jpeg;base64,IMG1' },
+                  { donnees: 'data:image/jpeg;base64,IMG2' },
+                ],
+              },
+            ],
+          },
+        ],
+      } as any;
+
+      jest
+        .spyOn(service, 'obtenirMenuPublic')
+        .mockResolvedValue(sampleMenu as any);
+
+      const html = await service.genererMenuPublicHtml('sr-123');
+
+      // vérifier les attributs de clic et d'index
+      expect(
+        html.match(
+          /class="plat-image clickable-image".*data-fullscreen-src="data:image\/jpeg;base64,IMG1".*data-image-index="0"/,
+        ),
+      ).toBeTruthy();
+      expect(
+        html.match(
+          /class="plat-image clickable-image".*data-fullscreen-src="data:image\/jpeg;base64,IMG2".*data-image-index="1"/,
+        ),
+      ).toBeTruthy();
+
+      // la modal doit être présente
+      expect(html).toContain('id="imageModal"');
+      expect(html).toContain('class="image-modal"');
+    });
   });
 });
