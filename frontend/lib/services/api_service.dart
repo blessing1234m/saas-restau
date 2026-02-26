@@ -324,9 +324,6 @@ class ApiService {
   static Future<Map<String, dynamic>> getAdminEtablissement(String token) async {
     try {
       final response = await getWithAuth('/admin-etablissements/mon-etablissement', token);
-      
-      print('[API] Response status: ${response.statusCode}');
-      print('[API] Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -469,8 +466,6 @@ class ApiService {
     if (response.statusCode == 201) {
       return Categorie.fromJson(jsonDecode(response.body));
     } else {
-      print('[API] Erreur création catégorie - Status: ${response.statusCode}');
-      print('[API] Response body: ${response.body}');
       final errorMsg = _extractErrorMessage(response);
       throw Exception(errorMsg);
     }
@@ -575,19 +570,11 @@ class ApiService {
       if (images != null && images.isNotEmpty) 'images': images,
     };
     
-    print('=== Création Plat ===');
-    print('SousRestaurantId: $sousRestaurantId');
-    print('CategorieId: $categorieId');
-    print('Données envoyées: $requestData');
-    
     final response = await postWithAuth(
       '/admin-etablissements/sous-restaurants/$sousRestaurantId/categories/$categorieId/plats',
       token,
       requestData,
     );
-
-    print('Statut réponse: ${response.statusCode}');
-    print('Corps réponse: ${response.body}');
 
     if (response.statusCode == 201) {
       return Plat.fromJson(jsonDecode(response.body));
@@ -609,7 +596,7 @@ class ApiService {
           }
         }
       } catch (e) {
-        print('Erreur parsing réponse: $e');
+        // Silently handle parsing error
       }
       throw Exception(errorMessage);
     }
