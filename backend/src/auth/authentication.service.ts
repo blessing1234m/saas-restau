@@ -16,14 +16,10 @@ export class AuthenticationService {
   ) {}
 
   async login(loginDto: LoginDto): Promise<LoginResponseDto> {
-    console.log('LOGIN REQUEST RECEIVED for code agent:', loginDto.codeAgent);
-    
     const utilisateur = await this.authService.validerUtilisateur(
       loginDto.codeAgent,
       loginDto.motDePasse,
     );
-
-    console.log('Utilisateur trouvé:', utilisateur ? utilisateur.codeAgent : 'NON');
 
     if (!utilisateur) {
       throw new UnauthorizedException(
@@ -52,16 +48,9 @@ export class AuthenticationService {
       if (adminEtab && adminEtab.etablissement) {
         response.etablissementId = adminEtab.etablissementId;
         response.etablissementName = adminEtab.etablissement.nom;
-        console.log('[LOGIN] AdminEtab établissement:', {
-          id: adminEtab.etablissementId,
-          nom: adminEtab.etablissement.nom,
-        });
-      } else {
-        console.log('[LOGIN] AdminEtab found but no établissement:', adminEtab);
       }
     }
 
-    console.log('[LOGIN] Final response:', response);
     return response;
   }
 }
