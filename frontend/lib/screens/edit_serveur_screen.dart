@@ -191,15 +191,8 @@ class _EditServeurScreenState extends State<EditServeurScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'ID Serveur',
-                                  style: textTheme.labelSmall?.copyWith(
-                                    color: colorScheme.outline,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  widget.serveur.id,
-                                  style: textTheme.bodySmall?.copyWith(
+                                  widget.serveur.codeAgent,
+                                  style: textTheme.bodyLarge?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
