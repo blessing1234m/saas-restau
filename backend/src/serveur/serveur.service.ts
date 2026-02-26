@@ -239,15 +239,26 @@ export class ServeurService {
             const prix = Number.isFinite(prixValue)
               ? `${prixValue.toLocaleString('fr-FR')} FCFA`
               : 'Prix indisponible';
-            const imageUrl =
-              plat.images && plat.images.length > 0 ? plat.images[0]?.donnees : null;
-            const image = imageUrl
-              ? `<img class="plat-image" src="${imageUrl}" alt="${nom}" loading="lazy" />`
-              : '<div class="plat-image plat-placeholder">Aucune image</div>';
+            // build markup for all available images (horizontal scroll if more than one)
+            let imagesSection: string;
+            if (plat.images && plat.images.length > 0) {
+              const imgsHtml = plat.images
+                .map((img) => {
+                  const url = img.donnees;
+                  return url
+                    ? `<img class="plat-image" src="${url}" alt="${nom}" loading="lazy" />`
+                    : '';
+                })
+                .join('');
+              imagesSection = `<div class="plat-images">${imgsHtml}</div>`;
+            } else {
+              imagesSection =
+                '<div class="plat-image plat-placeholder">Aucune image</div>';
+            }
 
             return `
               <article class="plat">
-                ${image}
+                ${imagesSection}
                 <div class="plat-content">
                   <div class="plat-header">
                     <h3>${nom}</h3>
@@ -396,6 +407,17 @@ export class ServeurService {
               min-height: 104px;
               object-fit: cover;
               background: #f3f4f6;
+            }
+            /* container for multiple photos, scrollable horizontally */
+            .plat-images {
+              display: flex;
+              gap: 4px;
+              overflow-x: auto;
+            }
+            .plat-images .plat-image {
+              flex: 0 0 auto;
+              width: 110px;
+              height: 100%;
             }
             .plat-placeholder {
               display: flex;

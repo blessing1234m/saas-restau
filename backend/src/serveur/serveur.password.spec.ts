@@ -126,4 +126,44 @@ describe('ServeurService - Password Management', () => {
       ).rejects.toThrow(BadRequestException);
     });
   });
+
+  describe('genererMenuPublicHtml', () => {
+    it('intègre toutes les images du plat dans le HTML', async () => {
+      // préparer un menu avec un plat qui a deux images
+      const sampleMenu = {
+        etablissement: { nom: 'TestEtab' },
+        nom: 'TestMenu',
+        categories: [
+          {
+            nom: 'Entrées',
+            description: null,
+            plats: [
+              {
+                nom: 'Salade Multiphoto',
+                description: 'Une salade avec plusieurs vues',
+                prix: 5.5,
+                images: [
+                  { donnees: 'data:image/jpeg;base64,AAA' },
+                  { donnees: 'data:image/jpeg;base64,BBB' },
+                ],
+              },
+            ],
+          },
+        ],
+      } as any;
+
+      jest
+        .spyOn(service, 'obtenirMenuPublic')
+        .mockResolvedValue(sampleMenu as any);
+
+      const html = await service.genererMenuPublicHtml('sr-123');
+
+      // on attend deux balises <img> correspondant aux deux photos
+      expect(html.match(/<img[^>]+src="data:image\/jpeg;base64,AAA"/)).toBeTruthy();
+      expect(html.match(/<img[^>]+src="data:image\/jpeg;base64,BBB"/)).toBeTruthy();
+
+      // la structure de conteneur pour multi‑images doit être présente
+      expect(html).toContain('class="plat-images"');
+    });
+  });
 });
