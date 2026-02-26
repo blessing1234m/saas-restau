@@ -190,38 +190,38 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 12),
                         // Remember me & Forgot password
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Checkbox(
-                                  value: _rememberMe,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _rememberMe = value ?? false;
-                                    });
-                                  },
-                                ),
-                                Text(
-                                  'Se souvenir de moi',
-                                  style: textTheme.bodySmall,
-                                ),
-                              ],
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                // TODO: Implement forgot password
-                              },
-                              child: Text(
-                                'Mot de passe oublié?',
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.primary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        // Row(
+                        //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        //   children: [
+                        //     Row(
+                        //       children: [
+                        //         Checkbox(
+                        //           value: _rememberMe,
+                        //           onChanged: (value) {
+                        //             setState(() {
+                        //               _rememberMe = value ?? false;
+                        //             });
+                        //           },
+                        //         ),
+                        //         Text(
+                        //           'Se souvenir de moi',
+                        //           style: textTheme.bodySmall,
+                        //         ),
+                        //       ],
+                        //     ),
+                        //     TextButton(
+                        //       onPressed: () {
+                        //         // TODO: Implement forgot password
+                        //       },
+                        //       child: Text(
+                        //         'Mot de passe oublié?',
+                        //         style: textTheme.bodySmall?.copyWith(
+                        //           color: colorScheme.primary,
+                        //         ),
+                        //       ),
+                        //     ),
+                        //   ],
+                        // ),
                         const SizedBox(height: 24),
                         // Login Button
                         SizedBox(
@@ -256,10 +256,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Footer
                   Center(
                     child: Text(
-                      'Bienvenue dans Restaurant Manager',
+                      'Bienvenue Sur Tabloo',
                       style: textTheme.bodySmall?.copyWith(
                         color: colorScheme.outline,
+                        fontWeight: FontWeight.bold
                       ),
+                      
                     ),
                   ),
                 ],

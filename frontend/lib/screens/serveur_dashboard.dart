@@ -194,7 +194,8 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
             padding: const EdgeInsets.all(16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 1.0,
+              // cards should be wider than tall to match mockup
+              childAspectRatio: 2.5,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
             ),
@@ -239,41 +240,43 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
       child: Card(
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Category image
-            Expanded(
-              flex: 3,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(12),
-                ),
-                child: _buildCategoriImage(categorie, colorScheme),
-              ),
-            ),
-            // Category name
-            Expanded(
-              flex: 1,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _safeString(categorie['nom']),
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              // Text part
+              Expanded(
+                child: Text(
+                  _safeString(categorie['nom']),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              // Image with colored background
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: _backgroundForCategorie(categorie),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: _buildCategoriImage(
+                    categorie,
+                    colorScheme,
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -281,18 +284,24 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
 
   Widget _buildCategoriImage(
     Map<String, dynamic> categorie,
-    ColorScheme colorScheme,
-  ) {
+    ColorScheme colorScheme, {
+    double? width,
+    double? height,
+    BoxFit fit = BoxFit.cover,
+  }) {
     final imageUrl = categorie['photoAffichage'];
     if (imageUrl is String && imageUrl.isNotEmpty) {
       // Check if it's a data URI
       if (imageUrl.startsWith('data:')) {
-        return _buildMemoryImage(imageUrl, colorScheme);
+        return _buildMemoryImage(imageUrl, colorScheme,
+            width: width, height: height, fit: fit);
       }
       // Otherwise use network image
       return Image.network(
         imageUrl,
-        fit: BoxFit.cover,
+        width: width,
+        height: height,
+        fit: fit,
         errorBuilder: (context, error, stackTrace) {
           return _buildCategoryPlaceholder(colorScheme);
         },
@@ -341,6 +350,20 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
         ),
       ),
     );
+  }
+
+  // pick a pastel background color for a category based on its name
+  Color _backgroundForCategorie(Map<String, dynamic> categorie) {
+    final name = _safeString(categorie['nom']);
+    final colors = [
+      Colors.pink.shade100,
+      Colors.teal.shade100,
+      Colors.amber.shade100,
+      Colors.lightGreen.shade100,
+      Colors.blue.shade100,
+    ];
+    final idx = name.hashCode.abs() % colors.length;
+    return colors[idx];
   }
 
   Widget _buildPlatsView(
