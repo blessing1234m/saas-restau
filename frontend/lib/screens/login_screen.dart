@@ -256,7 +256,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Footer
                   Center(
                     child: Text(
-                      'Bienvenue Sur Tabloo',
+                      'Bienvenue Sur MENO, votre assistant de gestion de Menu',
                       style: textTheme.bodySmall?.copyWith(
                         color: colorScheme.outline,
                         fontWeight: FontWeight.bold

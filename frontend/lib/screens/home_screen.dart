@@ -53,7 +53,7 @@ class _DefaultHomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Restaurant Manager'),
+        title: const Text('MENO'),
         elevation: 0,
         actions: [
           Consumer<ThemeProvider>(
