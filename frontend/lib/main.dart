@@ -54,8 +54,32 @@ class AppStartupScreen extends StatefulWidget {
   State<AppStartupScreen> createState() => _AppStartupScreenState();
 }
 
-class _AppStartupScreenState extends State<AppStartupScreen> {
+class _AppStartupScreenState extends State<AppStartupScreen>
+    with WidgetsBindingObserver {
   bool _showSplash = true;
+  int _splashRunId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_showSplash && mounted) {
+      setState(() {
+        _showSplash = true;
+        _splashRunId++;
+      });
+    }
+  }
 
   void _onSplashFinished() {
     if (!mounted) return;
@@ -67,7 +91,10 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
   @override
   Widget build(BuildContext context) {
     if (_showSplash) {
-      return SplashScreen(onAnimationComplete: _onSplashFinished);
+      return SplashScreen(
+        key: ValueKey(_splashRunId),
+        onAnimationComplete: _onSplashFinished,
+      );
     }
 
     return Consumer<AuthProvider>(
