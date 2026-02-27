@@ -9,6 +9,7 @@ import 'package:frontend/providers/serveur_menu_provider.dart';
 import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/screens/home_screen.dart';
+import 'package:frontend/screens/splash_screen.dart';
 import 'package:frontend/themes/app_themes.dart';
 
 void main() {
@@ -38,18 +39,44 @@ class MyApp extends StatelessWidget {
             theme: AppThemes.lightTheme,
             darkTheme: AppThemes.darkTheme,
             themeMode: themeProvider.themeMode,
-            home: Consumer<AuthProvider>(
-              builder: (context, authProvider, _) {
-                if (authProvider.isAuthenticated) {
-                  return const HomeScreen();
-                } else {
-                  return const LoginScreen();
-                }
-              },
-            ),
+            home: const AppStartupScreen(),
           );
         },
       ),
+    );
+  }
+}
+
+class AppStartupScreen extends StatefulWidget {
+  const AppStartupScreen({super.key});
+
+  @override
+  State<AppStartupScreen> createState() => _AppStartupScreenState();
+}
+
+class _AppStartupScreenState extends State<AppStartupScreen> {
+  bool _showSplash = true;
+
+  void _onSplashFinished() {
+    if (!mounted) return;
+    setState(() {
+      _showSplash = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_showSplash) {
+      return SplashScreen(onAnimationComplete: _onSplashFinished);
+    }
+
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, _) {
+        if (authProvider.isAuthenticated) {
+          return const HomeScreen();
+        }
+        return const LoginScreen();
+      },
     );
   }
 }

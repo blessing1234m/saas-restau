@@ -68,8 +68,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   Center(
                     child: Image.asset(
                       Theme.of(context).brightness == Brightness.dark
-                          ? 'assets/android.png'
-                          : 'assets/book.png',
+                          ? 'assets/logo_bleu_blanc.png'
+                          : 'assets/logo_bleu_noir.png',
                       height: 120,
                     ),
                   ),
