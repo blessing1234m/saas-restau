@@ -81,7 +81,7 @@ class _CreateAdminEtablissementScreenState
                   TextFormField(
                     controller: _codeAgentController,
                     decoration: InputDecoration(
-                      labelText: 'Code Agent *',
+                      labelText: 'Identifiant *',
                       prefixIcon: const Icon(Icons.badge),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),

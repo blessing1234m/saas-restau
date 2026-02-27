@@ -166,7 +166,7 @@ class _CreateServeurScreenState extends State<CreateServeurScreen> {
                 TextFormField(
                   controller: _codeAgentController,
                   decoration: InputDecoration(
-                    labelText: 'Code Agent',
+                    labelText: 'Identifiant *',
                     hintText: 'Ex: SERVEUR001',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),

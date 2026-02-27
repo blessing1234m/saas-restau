@@ -147,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           controller: _codeAgentController,
                           enabled: !authProvider.isLoading,
                           decoration: InputDecoration(
-                            labelText: 'Code Agent',
+                            labelText: 'Identifiant',
                             hintText: 'Entrez votre code agent',
                             prefixIcon: const Icon(Icons.person_outline),
                             border: OutlineInputBorder(
