@@ -18,6 +18,7 @@ class AdminEtablissementProvider extends ChangeNotifier {
   String? get etablissementVille => _etablissement?['ville'];
   String? get etablissementTelephone => _etablissement?['telephone'];
   String? get etablissementEmail => _etablissement?['email'];
+  String? get etablissementCategorie => _etablissement?['categorie'];
   
   List<SousRestaurant> get sousRestaurants => _sousRestaurants;
   List<dynamic> get serveurs => _serveurs;

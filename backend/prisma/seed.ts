@@ -4,7 +4,7 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Amorçage de la base de données...');
+  // console.log('Amorçage de la base de données...');
 
   // Supprimer les anciens SuperAdmin s'ils existent
   try {
@@ -14,7 +14,7 @@ async function main() {
       },
     });
     if (deleted.count > 0) {
-      console.log(`${deleted.count} utilisateurs supprimés`);
+      // console.log(`${deleted.count} utilisateurs supprimés`);
     }
   } catch (e) {
     // Ignorer l'erreur si les utilisateurs n'existent pas
@@ -33,7 +33,7 @@ async function main() {
     },
   });
 
-  console.log('SuperAdmin 1 créé:');
+  // console.log('SuperAdmin 1 créé:');
   // console.log('Code Agent: SuperAdmin');
   // console.log('   Mot de passe: Superad123');
   // console.log('   Mot de passe hashé:', motDePasseHash);
@@ -49,7 +49,7 @@ async function main() {
     },
   });
 
-  console.log('SuperAdmin 2 créé:');
+  // console.log('SuperAdmin 2 créé:');
   // console.log('   Code Agent: SUPER');
   // console.log('   Mot de passe: SUPERADMIN');
 }
@@ -57,7 +57,7 @@ async function main() {
 main()
   .then(async () => {
     await prisma.$disconnect();
-    console.log('Amorçage terminé');
+    // console.log('Amorçage terminé');
   })
   .catch(async (e) => {
     console.error('Erreur lors de l\'amorçage:', e);

@@ -1,5 +1,11 @@
-import { IsString, IsNotEmpty, IsOptional, IsEmail } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEmail, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+
+// local enum duplicata de celui défini dans Prisma
+export enum CategorieEtablissement {
+  SIMPLE = 'SIMPLE',
+  PRIVILEGE = 'PRIVILEGE',
+}
 
 export class UpdateEtablissementDto {
   @IsString()
@@ -23,4 +29,13 @@ export class UpdateEtablissementDto {
   @IsOptional()
   @ApiProperty({ description: 'Adresse email', example: 'contact@restaurant.com', required: false })
   email?: string;
+
+  @IsEnum(CategorieEtablissement)
+  @IsOptional()
+  @ApiProperty({
+    description: 'Catégorie de l\'établissement',
+    enum: CategorieEtablissement,
+    required: false,
+  })
+  categorie?: CategorieEtablissement;
 }

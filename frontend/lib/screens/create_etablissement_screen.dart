@@ -8,13 +8,11 @@ import 'package:frontend/models/etablissement.dart';
 class CreateEtablissementScreen extends StatefulWidget {
   final Etablissement? etablissementToEdit;
 
-  const CreateEtablissementScreen({
-    super.key,
-    this.etablissementToEdit,
-  });
+  const CreateEtablissementScreen({super.key, this.etablissementToEdit});
 
   @override
-  State<CreateEtablissementScreen> createState() => _CreateEtablissementScreenState();
+  State<CreateEtablissementScreen> createState() =>
+      _CreateEtablissementScreenState();
 }
 
 class _CreateEtablissementScreenState extends State<CreateEtablissementScreen> {
@@ -22,16 +20,26 @@ class _CreateEtablissementScreenState extends State<CreateEtablissementScreen> {
   late TextEditingController _villeController;
   late TextEditingController _telephoneController;
   late TextEditingController _emailController;
+  String _selectedCategorie = 'SIMPLE';
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _nomController = TextEditingController(text: widget.etablissementToEdit?.nom ?? '');
-    _villeController = TextEditingController(text: widget.etablissementToEdit?.ville ?? '');
-    _telephoneController = TextEditingController(text: widget.etablissementToEdit?.telephone ?? '');
-    _emailController = TextEditingController(text: widget.etablissementToEdit?.email ?? '');
+    _nomController = TextEditingController(
+      text: widget.etablissementToEdit?.nom ?? '',
+    );
+    _villeController = TextEditingController(
+      text: widget.etablissementToEdit?.ville ?? '',
+    );
+    _telephoneController = TextEditingController(
+      text: widget.etablissementToEdit?.telephone ?? '',
+    );
+    _emailController = TextEditingController(
+      text: widget.etablissementToEdit?.email ?? '',
+    );
+    _selectedCategorie = widget.etablissementToEdit?.categorie ?? 'SIMPLE';
   }
 
   @override
@@ -60,11 +68,15 @@ class _CreateEtablissementScreenState extends State<CreateEtablissementScreen> {
           Consumer<ThemeProvider>(
             builder: (context, themeProvider, _) {
               return IconButton(
-                icon: Icon(themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+                icon: Icon(
+                  themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                ),
                 onPressed: () {
                   themeProvider.toggleTheme();
                 },
-                tooltip: themeProvider.isDarkMode ? 'Mode clair' : 'Mode sombre',
+                tooltip: themeProvider.isDarkMode
+                    ? 'Mode clair'
+                    : 'Mode sombre',
               );
             },
           ),
@@ -89,8 +101,9 @@ class _CreateEtablissementScreenState extends State<CreateEtablissementScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    validator: (value) =>
-                        value == null || value.isEmpty ? 'Le nom est requis' : null,
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Le nom est requis'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   // Ville
@@ -103,8 +116,9 @@ class _CreateEtablissementScreenState extends State<CreateEtablissementScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    validator: (value) =>
-                        value == null || value.isEmpty ? 'La ville est requise' : null,
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'La ville est requise'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   // Téléphone
@@ -132,6 +146,30 @@ class _CreateEtablissementScreenState extends State<CreateEtablissementScreen> {
                     ),
                     keyboardType: TextInputType.emailAddress,
                   ),
+                  const SizedBox(height: 16),
+                  // Catégorie
+                  DropdownButtonFormField<String>(
+                    value: _selectedCategorie,
+                    decoration: InputDecoration(
+                      labelText: 'Catégorie *',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'SIMPLE', child: Text('Simple')),
+                      DropdownMenuItem(
+                        value: 'PRIVILEGE',
+                        child: Text('Privilège'),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setState(() => _selectedCategorie = val);
+                    },
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'La catégorie est requise'
+                        : null,
+                  ),
                   const SizedBox(height: 32),
                   // Boutons
                   Row(
@@ -154,13 +192,16 @@ class _CreateEtablissementScreenState extends State<CreateEtablissementScreen> {
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor:
-                                        AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                   ),
                                 )
                               : const Icon(Icons.save),
                           label: Text(
-                            widget.etablissementToEdit == null ? 'Créer' : 'Modifier',
+                            widget.etablissementToEdit == null
+                                ? 'Créer'
+                                : 'Modifier',
                           ),
                         ),
                       ),
@@ -211,7 +252,10 @@ class _CreateEtablissementScreenState extends State<CreateEtablissementScreen> {
             authProvider.token!,
             _nomController.text,
             _villeController.text,
-            _telephoneController.text.isEmpty ? null : _telephoneController.text,
+            _selectedCategorie,
+            _telephoneController.text.isEmpty
+                ? null
+                : _telephoneController.text,
             _emailController.text.isEmpty ? null : _emailController.text,
           )
         : await superAdminProvider.updateEtablissement(
@@ -219,7 +263,10 @@ class _CreateEtablissementScreenState extends State<CreateEtablissementScreen> {
             authProvider.token!,
             _nomController.text,
             _villeController.text,
-            _telephoneController.text.isEmpty ? null : _telephoneController.text,
+            _selectedCategorie,
+            _telephoneController.text.isEmpty
+                ? null
+                : _telephoneController.text,
             _emailController.text.isEmpty ? null : _emailController.text,
           );
 
@@ -236,9 +283,9 @@ class _CreateEtablissementScreenState extends State<CreateEtablissementScreen> {
         ),
       );
       // Recharge en arrière-plan et revient
-      context
-          .read<SuperAdminProvider>()
-          .loadEtablissements(context.read<AuthProvider>().token!);
+      context.read<SuperAdminProvider>().loadEtablissements(
+        context.read<AuthProvider>().token!,
+      );
       Navigator.of(context).pop(true);
     } else {
       setState(() => _isLoading = false);

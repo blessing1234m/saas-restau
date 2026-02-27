@@ -17,6 +17,12 @@ enum Role {
   SERVEUR
 }
 
+// Catégorie d'établissement (pour restreindre certains comportements)
+enum CategorieEtablissement {
+  SIMPLE
+  PRIVILEGE
+}
+
 // ÉNUMÉRATION DES STATUTS DE COMMANDE
 enum StatutCommande {
   EN_ATTENTE
@@ -52,6 +58,7 @@ model Etablissement {
   ville                 String
   telephone             String?
   email                 String?
+  categorie             CategorieEtablissement @default(SIMPLE)
   estActif              Boolean               @default(true)
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt

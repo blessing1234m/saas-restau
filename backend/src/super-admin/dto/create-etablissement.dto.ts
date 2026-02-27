@@ -1,11 +1,25 @@
-import { IsString, IsNotEmpty, IsEmail, IsOptional, IsInt, Min, Max } from 'class-validator';
+import { IsString, IsNotEmpty, IsEmail, IsOptional, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+
+// on redéfinit localement pour éviter d'attendre la génération Prisma
+export enum CategorieEtablissement {
+  SIMPLE = 'SIMPLE',
+  PRIVILEGE = 'PRIVILEGE',
+}
 
 export class CreateEtablissementDto {
   @IsString()
   @IsNotEmpty()
   @ApiProperty({ description: 'Nom de l\'établissement', example: 'Restaurant Le Gourmet' })
   nom: string;
+
+  @IsEnum(CategorieEtablissement)
+  @ApiProperty({
+    description: 'Catégorie de l\'établissement (affecte les droits des admins)',
+    enum: CategorieEtablissement,
+    example: CategorieEtablissement.SIMPLE,
+  })
+  categorie: CategorieEtablissement;
 
   
   @IsString()

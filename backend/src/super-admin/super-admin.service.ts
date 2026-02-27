@@ -17,13 +17,29 @@ export class SuperAdminService {
   // ÉTABLISSEMENTS 
 
   async creerEtablissement(createEtablissementDto: CreateEtablissementDto) {
-    return this.prisma.etablissement.create({
-      data: {
-        nom: createEtablissementDto.nom,
-        ville: createEtablissementDto.ville,
-        telephone: createEtablissementDto.telephone,
-        email: createEtablissementDto.email,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const etablissement = await tx.etablissement.create({
+        data: {
+          nom: createEtablissementDto.nom,
+          ville: createEtablissementDto.ville,
+          telephone: createEtablissementDto.telephone,
+          email: createEtablissementDto.email,
+          categorie: createEtablissementDto.categorie,
+        },
+      });
+
+      // Pour la catégorie SIMPLE, créer automatiquement l'unique sous-restaurant.
+      if (createEtablissementDto.categorie === 'SIMPLE') {
+        await tx.sousRestaurant.create({
+          data: {
+            nom: 'Restaurant principal',
+            description: 'Sous-restaurant principal (créé automatiquement)',
+            etablissementId: etablissement.id,
+          },
+        });
+      }
+
+      return etablissement;
     });
   }
 
@@ -145,7 +161,7 @@ export class SuperAdminService {
     });
 
     if (utilisateurExistant) {
-      console.log('Code agent déjà utilisé');
+      // code agent déjà utilisé
       throw new BadRequestException(
         'Ce code agent est déjà utilisé',
       );
@@ -157,7 +173,7 @@ export class SuperAdminService {
     });
 
     if (!etablissement) {
-      console.log('❌ Établissement non trouvé:', createAdminDto.etablissementId);
+      // établissement non trouvé
       throw new NotFoundException(
         `Établissement avec l'ID ${createAdminDto.etablissementId} non trouvé`,
       );
@@ -170,7 +186,7 @@ export class SuperAdminService {
       'ADMIN_ETABLISSEMENT',
     );
     
-    console.log('✅ Utilisateur créé:', utilisateur.id);
+    // utilisateur créé avec succès
 
     // Créer l'admin d'établissement
     const adminEtablissement = await this.prisma.adminEtablissement.create({

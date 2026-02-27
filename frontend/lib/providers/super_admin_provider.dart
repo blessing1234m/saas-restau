@@ -57,6 +57,7 @@ class SuperAdminProvider extends ChangeNotifier {
     String token,
     String nom,
     String ville,
+    String categorie,
     String? telephone,
     String? email,
   ) async {
@@ -69,6 +70,7 @@ class SuperAdminProvider extends ChangeNotifier {
         token,
         nom,
         ville,
+        categorie,
         telephone,
         email,
       );
@@ -154,6 +156,7 @@ class SuperAdminProvider extends ChangeNotifier {
     String token,
     String nom,
     String ville,
+    String categorie,
     String? telephone,
     String? email,
   ) async {
@@ -167,6 +170,7 @@ class SuperAdminProvider extends ChangeNotifier {
         token,
         nom,
         ville,
+        categorie,
         telephone,
         email,
       );

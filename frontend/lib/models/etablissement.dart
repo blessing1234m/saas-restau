@@ -4,6 +4,7 @@ class Etablissement {
   final String ville;
   final String? telephone;
   final String? email;
+  final String categorie;
   final bool estActif;
   final DateTime createdAt;
 
@@ -13,6 +14,7 @@ class Etablissement {
     required this.ville,
     this.telephone,
     this.email,
+    required this.categorie,
     required this.estActif,
     required this.createdAt,
   });
@@ -24,6 +26,7 @@ class Etablissement {
       ville: json['ville'] as String,
       telephone: json['telephone'] as String?,
       email: json['email'] as String?,
+      categorie: json['categorie'] as String? ?? 'SIMPLE',
       estActif: json['estActif'] as bool,
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
@@ -36,6 +39,7 @@ class Etablissement {
       'ville': ville,
       'telephone': telephone,
       'email': email,
+      'categorie': categorie,
       'estActif': estActif,
       'createdAt': createdAt.toIso8601String(),
     };

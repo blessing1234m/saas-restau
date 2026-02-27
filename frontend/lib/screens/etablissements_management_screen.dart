@@ -132,16 +132,20 @@ class _EtablissementsManagementScreenState
                     onPressed: () async {
                       final result = await Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) => const CreateEtablissementScreen(),
+                          builder: (context) =>
+                              const CreateEtablissementScreen(),
                         ),
                       );
                       if (result == true && mounted) {
                         // Actualiser la liste
-                        final superAdminProvider = context.read<SuperAdminProvider>();
+                        final superAdminProvider = context
+                            .read<SuperAdminProvider>();
                         final authProvider = context.read<AuthProvider>();
                         await Future.delayed(const Duration(milliseconds: 500));
                         if (mounted) {
-                          superAdminProvider.loadEtablissements(authProvider.token!);
+                          superAdminProvider.loadEtablissements(
+                            authProvider.token!,
+                          );
                         }
                       }
                     },
@@ -171,8 +175,9 @@ class _EtablissementsManagementScreenState
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () async {
-                      await superAdminProvider
-                          .loadEtablissements(authProvider.token!);
+                      await superAdminProvider.loadEtablissements(
+                        authProvider.token!,
+                      );
                     },
                     child: ListView.builder(
                       itemCount: filteredEtablissements.length,
@@ -213,10 +218,12 @@ class _EtablissementsManagementScreenState
     if (_searchController.text.isNotEmpty) {
       final query = _searchController.text.toLowerCase();
       filtered = filtered
-          .where((e) =>
-              e.nom.toLowerCase().contains(query) ||
-              e.ville.toLowerCase().contains(query) ||
-              (e.email?.toLowerCase().contains(query) ?? false))
+          .where(
+            (e) =>
+                e.nom.toLowerCase().contains(query) ||
+                e.ville.toLowerCase().contains(query) ||
+                (e.email?.toLowerCase().contains(query) ?? false),
+          )
           .toList();
     }
 
@@ -246,22 +253,20 @@ class _EtablissementsManagementScreenState
             ),
             child: Icon(
               Icons.apartment,
-              color: etab.estActif
-                  ? colorScheme.primary
-                  : colorScheme.error,
+              color: etab.estActif ? colorScheme.primary : colorScheme.error,
             ),
           ),
           title: Text(
             etab.nom,
-            style: textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           subtitle: Row(
             children: [
               Icon(Icons.location_on, size: 16, color: colorScheme.outline),
               const SizedBox(width: 4),
               Text(etab.ville),
+              const SizedBox(width: 12),
+              Text(etab.categorie),
               const SizedBox(width: 12),
               Chip(
                 label: Text(
@@ -270,9 +275,7 @@ class _EtablissementsManagementScreenState
                     color: colorScheme.onPrimary,
                   ),
                 ),
-                backgroundColor: etab.estActif
-                    ? Colors.green
-                    : Colors.orange,
+                backgroundColor: etab.estActif ? Colors.green : Colors.orange,
                 padding: EdgeInsets.zero,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -300,14 +303,19 @@ class _EtablissementsManagementScreenState
                   const SizedBox(height: 12),
                   _buildDetailRow(
                     context,
+                    'Catégorie',
+                    etab.categorie,
+                    Icons.category,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDetailRow(
+                    context,
                     'Créé le',
                     _formatDate(etab.createdAt),
                     Icons.calendar_today,
                   ),
                   const SizedBox(height: 16),
-                  Divider(
-                    color: colorScheme.outlineVariant,
-                  ),
+                  Divider(color: colorScheme.outlineVariant),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -325,11 +333,16 @@ class _EtablissementsManagementScreenState
                             ),
                           );
                           if (result == true && mounted) {
-                            final superAdminProvider = context.read<SuperAdminProvider>();
+                            final superAdminProvider = context
+                                .read<SuperAdminProvider>();
                             final authProvider = context.read<AuthProvider>();
-                            await Future.delayed(const Duration(milliseconds: 500));
+                            await Future.delayed(
+                              const Duration(milliseconds: 500),
+                            );
                             if (mounted) {
-                              superAdminProvider.loadEtablissements(authProvider.token!);
+                              superAdminProvider.loadEtablissements(
+                                authProvider.token!,
+                              );
                             }
                           }
                         },
@@ -350,7 +363,7 @@ class _EtablissementsManagementScreenState
                             String message = etab.estActif
                                 ? 'Établissement désactivé (admins aussi désactivés)'
                                 : 'Établissement activé';
-                            
+
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(message),
@@ -359,9 +372,7 @@ class _EtablissementsManagementScreenState
                             );
                           }
                         },
-                        color: etab.estActif
-                            ? Colors.orange
-                            : Colors.green,
+                        color: etab.estActif ? Colors.orange : Colors.green,
                       ),
                       _buildActionButton(
                         context,
@@ -411,10 +422,7 @@ class _EtablissementsManagementScreenState
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                value,
-                style: textTheme.bodyMedium,
-              ),
+              Text(value, style: textTheme.bodyMedium),
             ],
           ),
         ),
@@ -437,9 +445,7 @@ class _EtablissementsManagementScreenState
         ),
         Text(
           label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: color,
-          ),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
         ),
       ],
     );

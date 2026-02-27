@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { CreateSousRestaurantDto, UpdateSousRestaurantDto } from './dto/sous-restaurant.dto';
@@ -48,7 +49,7 @@ export class AdminEtablissementService {
         }
         const mimeType = cat.photoTypeContenu || 'image/jpeg';
         result.photoAffichage = `data:${mimeType};base64,${buffer.toString('base64')}`;
-        console.log('[formatCategorie] Photo convertie en base64 pour:', cat.nom);
+        // log supprimé
       } catch (error) {
         console.error('[formatCategorie] Erreur conversion photo en base64:', error, 'cat.photoAffichage type:', typeof cat.photoAffichage);
       }
@@ -136,6 +137,21 @@ export class AdminEtablissementService {
   ) {
     const etablissementId = await this.obtenirEtablissementId(adminId);
 
+    // récupérer l'établissement pour vérifier la catégorie
+    const etab = await this.prisma.etablissement.findUnique({
+      where: { id: etablissementId },
+    });
+    if (!etab) {
+      throw new NotFoundException('Établissement introuvable');
+    }
+
+    // ne pas autoriser la création lorsque la catégorie est SIMPLE
+    if (etab.categorie === 'SIMPLE') {
+      throw new ForbiddenException(
+        'Impossible d\'ajouter un sous-restaurant à un établissement de catégorie SIMPLE',
+      );
+    }
+
     const existant = await this.prisma.sousRestaurant.findFirst({
       where: {
         etablissementId,
@@ -160,6 +176,33 @@ export class AdminEtablissementService {
 
   async obtenirSousRestaurants(adminId: string) {
     const etablissementId = await this.obtenirEtablissementId(adminId);
+
+    // Rattrapage: un établissement SIMPLE doit toujours avoir un sous-restaurant unique.
+    const etablissement = await this.prisma.etablissement.findUnique({
+      where: { id: etablissementId },
+      select: { categorie: true },
+    });
+
+    if (!etablissement) {
+      throw new NotFoundException('Établissement introuvable');
+    }
+
+    if (etablissement.categorie === 'SIMPLE') {
+      const sousRestaurantExistant = await this.prisma.sousRestaurant.findFirst({
+        where: { etablissementId },
+        select: { id: true },
+      });
+
+      if (!sousRestaurantExistant) {
+        await this.prisma.sousRestaurant.create({
+          data: {
+            nom: 'Restaurant principal',
+            description: 'Sous-restaurant principal (créé automatiquement)',
+            etablissementId,
+          },
+        });
+      }
+    }
 
     return this.prisma.sousRestaurant.findMany({
       where: { etablissementId },
@@ -401,14 +444,7 @@ export class AdminEtablissementService {
     sousRestaurantId: string,
     createCategorieDto: CreateCategorieDto,
   ) {
-    console.log('[CATEGORIE] Création demandée:', {
-      adminId,
-      sousRestaurantId,
-      nom: createCategorieDto.nom,
-      description: createCategorieDto.description,
-      hasPhoto: !!createCategorieDto.photoAffichage,
-      ordre: createCategorieDto.ordre,
-    });
+    // log de création catégorie supprimé
 
     const etablissementId = await this.obtenirEtablissementId(adminId);
 
@@ -447,11 +483,7 @@ export class AdminEtablissementService {
           buffer = Buffer.from(createCategorieDto.photoAffichage, 'base64');
         }
 
-        console.log('[CATEGORIE] Photo traitée:', { 
-          mimeType, 
-          tailleBuffer: buffer.length,
-          isBuffer: Buffer.isBuffer(buffer)
-        });
+        // log de traitement photo supprimé
 
         photoData = {
           photoAffichage: buffer,
@@ -474,7 +506,7 @@ export class AdminEtablissementService {
         ...photoData,
       },
     }).then(cat => {
-      console.log('[CATEGORIE] Catégorie créée avec succès:', cat.id);
+      // log succès création supprimé
       return this.formatCategorie(cat);
     }).catch(error => {
       console.error('[CATEGORIE] Erreur Prisma lors de la création:', error);
@@ -510,16 +542,7 @@ export class AdminEtablissementService {
       orderBy: { ordre: 'asc' },
     });
 
-    console.log('[obtenirCategories] Nombre de catégories:', categories.length);
-    categories.forEach((cat, idx) => {
-      console.log(`[obtenirCategories] Catégorie ${idx}:`, {
-        id: cat.id,
-        nom: cat.nom,
-        hasPhoto: !!cat.photoAffichage,
-        photoType: typeof cat.photoAffichage,
-        dataLength: cat.photoAffichage ? Buffer.byteLength(cat.photoAffichage) : 0,
-      });
-    });
+    // logs de récupération des catégories supprimés
 
     // Formater les catégories avec photos en base64
     return categories.map(cat => {
@@ -1018,7 +1041,7 @@ export class AdminEtablissementService {
       throw new BadRequestException('Sous-restaurant non trouvé ou n\'appartient pas à cet établissement');
     }
 
-    console.log('[creerServeur] Création du serveur avec code agent:', createServeurDto.codeAgent);
+    // log supprimé pour ne pas exposer le code agent
 
     const utilisateur = await this.authService.creerUtilisateur(
       createServeurDto.codeAgent,
@@ -1026,7 +1049,7 @@ export class AdminEtablissementService {
       'SERVEUR',
     );
 
-    console.log('[creerServeur] Utilisateur créé avec ID:', utilisateur.id, 'Code agent:', utilisateur.codeAgent);
+    // log utilisateur créé supprimé pour raisons de sécurité
 
     const serveur = await this.prisma.serveur.create({
       data: {
@@ -1052,7 +1075,7 @@ export class AdminEtablissementService {
       },
     });
 
-    console.log('[creerServeur] Serveur créé avec succès:', serveur.id);
+    // serveur créé avec succès (log supprimé)
 
     return serveur;
   }
@@ -1159,6 +1182,21 @@ export class AdminEtablissementService {
       codeAgent: updateServeurDto.codeAgent,
     };
 
+    // Vérifier l'unicité du code agent si modifié
+    if (
+      updateServeurDto.codeAgent &&
+      updateServeurDto.codeAgent !== serveur.utilisateur.codeAgent
+    ) {
+      const utilisateurExistant = await this.prisma.utilisateur.findUnique({
+        where: { codeAgent: updateServeurDto.codeAgent },
+        select: { id: true },
+      });
+
+      if (utilisateurExistant) {
+        throw new BadRequestException('Ce code agent est déjà utilisé');
+      }
+    }
+
     // Mettre à jour le mot de passe si fourni
     if (updateServeurDto.ancienMotDePasse && updateServeurDto.nouveauMotDePasse) {
       // Vérifier l'ancien mot de passe
@@ -1178,10 +1216,20 @@ export class AdminEtablissementService {
     }
 
     // Mettre à jour l'utilisateur
-    await this.prisma.utilisateur.update({
-      where: { id: serveur.utilisateurId },
-      data: updateData,
-    });
+    try {
+      await this.prisma.utilisateur.update({
+        where: { id: serveur.utilisateurId },
+        data: updateData,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new BadRequestException('Ce code agent est déjà utilisé');
+      }
+      throw error;
+    }
 
     // Mettre à jour le serveur (sous-restaurant)
     const serveurModifie = await this.prisma.serveur.update({

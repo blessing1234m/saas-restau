@@ -212,6 +212,7 @@ class ApiService {
     String token,
     String nom,
     String ville,
+    String categorie,
     String? telephone,
     String? email,
   ) async {
@@ -221,6 +222,7 @@ class ApiService {
       {
         'nom': nom,
         'ville': ville,
+        'categorie': categorie,
         'telephone': telephone,
         'email': email,
       },
@@ -239,6 +241,7 @@ class ApiService {
     String token,
     String nom,
     String ville,
+    String categorie,
     String? telephone,
     String? email,
   ) async {
@@ -248,6 +251,7 @@ class ApiService {
       {
         'nom': nom,
         'ville': ville,
+        'categorie': categorie,
         'telephone': telephone,
         'email': email,
       },
@@ -370,7 +374,7 @@ class ApiService {
     if (response.statusCode == 201) {
       return SousRestaurant.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Erreur lors de la création du sous-restaurant');
+      throw Exception(_extractErrorMessage(response));
     }
   }
 

@@ -149,7 +149,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                               color: colorScheme.outline,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 4),
+                          // Text(
+                          //   'Catégorie : ${adminProvider.etablissementCategorie ?? 'N/A'}',
+                          //   style: textTheme.bodySmall?.copyWith(
+                          //     color: colorScheme.onPrimaryContainer,
+                          //   ),
+                          // ),
+                          const SizedBox(height: 4),
                           Text(
                             nomEtablissement,
                             style: textTheme.displaySmall?.copyWith(

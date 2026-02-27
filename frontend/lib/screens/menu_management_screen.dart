@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:frontend/providers/admin_etablissement_provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/menu_management_provider.dart';
 import 'package:frontend/providers/theme_provider.dart';
@@ -45,11 +46,15 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
           Consumer<ThemeProvider>(
             builder: (context, themeProvider, _) {
               return IconButton(
-                icon: Icon(themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+                icon: Icon(
+                  themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                ),
                 onPressed: () {
                   themeProvider.toggleTheme();
                 },
-                tooltip: themeProvider.isDarkMode ? 'Mode clair' : 'Mode sombre',
+                tooltip: themeProvider.isDarkMode
+                    ? 'Mode clair'
+                    : 'Mode sombre',
               );
             },
           ),
@@ -57,6 +62,20 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
       ),
       body: Consumer2<AuthProvider, MenuManagementProvider>(
         builder: (context, authProvider, menuProvider, _) {
+          final isSimpleCategory =
+              context.watch<AdminEtablissementProvider>().etablissementCategorie ==
+              'SIMPLE';
+
+          if (isSimpleCategory &&
+              _currentStep == 0 &&
+              menuProvider.sousRestaurants.isNotEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() => _currentStep = 1);
+              }
+            });
+          }
+
           return Column(
             children: [
               // Step indicator
@@ -66,16 +85,21 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _buildStepIndicator(
-                        'Restaurants',
-                        0,
-                        colorScheme,
-                        textTheme,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Icon(Icons.arrow_forward, color: colorScheme.outline),
-                      ),
+                      if (!isSimpleCategory) ...[
+                        _buildStepIndicator(
+                          'Restaurants',
+                          0,
+                          colorScheme,
+                          textTheme,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Icon(
+                            Icons.arrow_forward,
+                            color: colorScheme.outline,
+                          ),
+                        ),
+                      ],
                       _buildStepIndicator(
                         'Catégories',
                         1,
@@ -84,14 +108,12 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Icon(Icons.arrow_forward, color: colorScheme.outline),
+                        child: Icon(
+                          Icons.arrow_forward,
+                          color: colorScheme.outline,
+                        ),
                       ),
-                      _buildStepIndicator(
-                        'Plats',
-                        2,
-                        colorScheme,
-                        textTheme,
-                      ),
+                      _buildStepIndicator('Plats', 2, colorScheme, textTheme),
                     ],
                   ),
                 ),
@@ -134,22 +156,33 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
       ),
       bottomNavigationBar: Consumer<MenuManagementProvider>(
         builder: (context, menuProvider, _) {
+          final isSimpleCategory =
+              context.watch<AdminEtablissementProvider>().etablissementCategorie ==
+              'SIMPLE';
+
           return Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton.icon(
-                  onPressed: _currentStep > 0
-                      ? () => setState(() => _currentStep--)
-                      : null,
+                  onPressed: isSimpleCategory
+                      ? (_currentStep > 1
+                            ? () => setState(() => _currentStep--)
+                            : null)
+                      : (_currentStep > 0
+                            ? () => setState(() => _currentStep--)
+                            : null),
                   icon: const Icon(Icons.arrow_back),
                   label: const Text('Précédent'),
                 ),
                 ElevatedButton.icon(
-                  onPressed: _currentStep < 2 &&
-                          ((_currentStep == 0 && menuProvider.sousRestaurants.isNotEmpty) ||
-                              (_currentStep == 1 && menuProvider.selectedCategories.isNotEmpty))
+                  onPressed:
+                      _currentStep < 2 &&
+                          ((_currentStep == 0 &&
+                                  menuProvider.sousRestaurants.isNotEmpty) ||
+                              (_currentStep == 1 &&
+                                  menuProvider.selectedCategories.isNotEmpty))
                       ? () => setState(() => _currentStep++)
                       : null,
                   icon: const Icon(Icons.arrow_forward),
@@ -187,7 +220,9 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
         child: Text(
           label,
           style: textTheme.labelMedium?.copyWith(
-            color: isActive ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+            color: isActive
+                ? colorScheme.onPrimary
+                : colorScheme.onSurfaceVariant,
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -205,6 +240,10 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     TextTheme textTheme,
   ) {
     final sousRestaurants = menuProvider.sousRestaurants;
+    final etablissementCategorie = context
+        .watch<AdminEtablissementProvider>()
+        .etablissementCategorie;
+    final isSimpleCategory = etablissementCategorie == 'SIMPLE';
 
     return SingleChildScrollView(
       child: Padding(
@@ -222,16 +261,34 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                   ),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () => _showAddSousRestaurantDialog(
-                    context,
-                    authProvider,
-                    menuProvider,
-                  ),
+                  onPressed: isSimpleCategory
+                      ? null
+                      : () => _showAddSousRestaurantDialog(
+                          context,
+                          authProvider,
+                          menuProvider,
+                        ),
                   icon: const Icon(Icons.add),
                   label: const Text('Ajouter'),
+                  style: isSimpleCategory
+                      ? ElevatedButton.styleFrom(
+                          foregroundColor: colorScheme.onSurface,
+                          backgroundColor: colorScheme.surfaceVariant,
+                        )
+                      : null,
                 ),
               ],
             ),
+            if (isSimpleCategory)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  'L\'établissement de catégorie SIMPLE ne peut pas avoir de sous-restaurants',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.error,
+                  ),
+                ),
+              ),
             const SizedBox(height: 16),
             if (sousRestaurants.isEmpty)
               Center(
@@ -318,7 +375,10 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                 'Supprimer ${sr.nom}?',
                 () async {
                   if (authProvider.token != null) {
-                    await menuProvider.deleteSousRestaurant(sr.id, authProvider.token!);
+                    await menuProvider.deleteSousRestaurant(
+                      sr.id,
+                      authProvider.token!,
+                    );
                   }
                 },
               ),
@@ -499,8 +559,8 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                   topLeft: Radius.circular(12),
                   topRight: Radius.circular(12),
                 ),
-                color: isSelected 
-                    ? colorScheme.primary.withOpacity(0.2) 
+                color: isSelected
+                    ? colorScheme.primary.withOpacity(0.2)
                     : colorScheme.primary.withOpacity(0.1),
               ),
               child: cat.photoAffichage != null
@@ -545,7 +605,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                       cat.nom,
                       style: textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w900,
-                        color: isSelected ? colorScheme.primary: null,
+                        color: isSelected ? colorScheme.primary : null,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -556,14 +616,17 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         IconButton(
-                          onPressed: () => _showDetailsCategorieDialog(
-                            context,
-                            cat,
+                          onPressed: () =>
+                              _showDetailsCategorieDialog(context, cat),
+                          icon: Icon(
+                            Icons.info_outline,
+                            color: colorScheme.secondary,
                           ),
-                          icon: Icon(Icons.info_outline, color: colorScheme.secondary),
                           tooltip: 'Détails',
                           style: IconButton.styleFrom(
-                            backgroundColor: colorScheme.secondary.withOpacity(0.1),
+                            backgroundColor: colorScheme.secondary.withOpacity(
+                              0.1,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -580,7 +643,9 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                           icon: Icon(Icons.edit, color: colorScheme.primary),
                           tooltip: 'Modifier',
                           style: IconButton.styleFrom(
-                            backgroundColor: colorScheme.primary.withOpacity(0.1),
+                            backgroundColor: colorScheme.primary.withOpacity(
+                              0.1,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -632,7 +697,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
   ) {
     final selectedSR = menuProvider.selectedSousRestaurant;
     final categories = menuProvider.selectedCategories;
-    
+
     // Trouvez la catégorie sélectionnée ou retournez null si vide
     Categorie? selectedCat;
     if (categories.isNotEmpty && menuProvider.selectedCategorieId != null) {
@@ -644,7 +709,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
         selectedCat = categories.isNotEmpty ? categories.first : null;
       }
     }
-    
+
     final plats = menuProvider.selectedPlats;
 
     if (selectedSR == null || selectedCat == null) {
@@ -789,22 +854,18 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
           }
         }
       }
-      return Icon(
-        Icons.restaurant_menu,
-        color: colorScheme.primary,
-      );
+      return Icon(Icons.restaurant_menu, color: colorScheme.primary);
     }
 
     return Card(
       child: InkWell(
-        onTap: () => _showPlatDetailsDialog(context, plat, colorScheme, textTheme),
+        onTap: () =>
+            _showPlatDetailsDialog(context, plat, colorScheme, textTheme),
         child: ListTile(
           leading: buildLeading(),
           title: Text(
             plat.nom,
-            style: textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -863,7 +924,10 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     if (prix == prix.toInt()) {
       return prix.toInt().toString();
     }
-    return prix.toStringAsFixed(2).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+    return prix
+        .toStringAsFixed(2)
+        .replaceAll(RegExp(r'0+$'), '')
+        .replaceAll(RegExp(r'\.$'), '');
   }
 
   // ========== DIALOGS ==========
@@ -892,7 +956,8 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                     child: Builder(
                       builder: (context) {
                         final firstImage = plat.images![0];
-                        if (firstImage is Map && firstImage['donnees'] != null) {
+                        if (firstImage is Map &&
+                            firstImage['donnees'] != null) {
                           try {
                             return ClipRRect(
                               borderRadius: BorderRadius.circular(8),
@@ -931,15 +996,9 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Description',
-                        style: textTheme.labelLarge,
-                      ),
+                      Text('Description', style: textTheme.labelLarge),
                       const SizedBox(height: 8),
-                      Text(
-                        plat.description!,
-                        style: textTheme.bodyMedium,
-                      ),
+                      Text(plat.description!, style: textTheme.bodyMedium),
                       const SizedBox(height: 16),
                     ],
                   ),
@@ -958,36 +1017,35 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
-                            children: List.generate(
-                              plat.images!.length,
-                              (index) {
-                                final image = plat.images![index];
-                                if (image is Map && image['donnees'] != null) {
-                                  try {
-                                    return Padding(
-                                      padding: const EdgeInsets.only(right: 8),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(4),
-                                        child: Image.memory(
-                                          base64Decode(image['donnees']),
-                                          fit: BoxFit.cover,
-                                          width: 100,
-                                          height: 100,
-                                        ),
+                            children: List.generate(plat.images!.length, (
+                              index,
+                            ) {
+                              final image = plat.images![index];
+                              if (image is Map && image['donnees'] != null) {
+                                try {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(4),
+                                      child: Image.memory(
+                                        base64Decode(image['donnees']),
+                                        fit: BoxFit.cover,
+                                        width: 100,
+                                        height: 100,
                                       ),
-                                    );
-                                  } catch (e) {
-                                    return Container(
-                                      width: 100,
-                                      height: 100,
-                                      color: Colors.grey[200],
-                                      child: const Icon(Icons.image),
-                                    );
-                                  }
+                                    ),
+                                  );
+                                } catch (e) {
+                                  return Container(
+                                    width: 100,
+                                    height: 100,
+                                    color: Colors.grey[200],
+                                    child: const Icon(Icons.image),
+                                  );
                                 }
-                                return const SizedBox.shrink();
-                              },
-                            ),
+                              }
+                              return const SizedBox.shrink();
+                            }),
                           ),
                         ),
                       ),
@@ -1103,7 +1161,9 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     MenuManagementProvider menuProvider,
   ) {
     final nomController = TextEditingController(text: sr.nom);
-    final descriptionController = TextEditingController(text: sr.description ?? '');
+    final descriptionController = TextEditingController(
+      text: sr.description ?? '',
+    );
 
     showDialog(
       context: context,
@@ -1302,7 +1362,9 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     MenuManagementProvider menuProvider,
   ) {
     final nomController = TextEditingController(text: cat.nom);
-    final descriptionController = TextEditingController(text: cat.description ?? '');
+    final descriptionController = TextEditingController(
+      text: cat.description ?? '',
+    );
     String? selectedPhoto = cat.photoAffichage;
 
     showDialog(
@@ -1423,403 +1485,53 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
           content: SizedBox(
             width: double.maxFinite,
             child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-              TextField(
-                controller: nomController,
-                decoration: InputDecoration(
-                  labelText: 'Nom du plat',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Description (optionnel)',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                minLines: 2,
-                maxLines: 4,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: prixController,
-                decoration: InputDecoration(
-                  labelText: 'Prix (FCFA)',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              ),
-              const SizedBox(height: 16),
-              if (selectedImages.isNotEmpty)
-                SizedBox(
-                  height: 120,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: List.generate(selectedImages.length, (index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  width: 120,
-                                  height: 120,
-                                  color: Colors.grey[200],
-                                  child: Image.memory(
-                                    base64Decode(
-                                      selectedImages[index].startsWith('data:')
-                                          ? selectedImages[index].split(',').last
-                                          : selectedImages[index],
-                                    ),
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: Container(
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red[400],
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: InkWell(
-                                    onTap: () {
-                                      setState(() {
-                                        selectedImages.removeAt(index);
-                                      });
-                                    },
-                                    child: const Icon(
-                                      Icons.close,
-                                      color: Colors.white,
-                                      size: 16,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ),
-                  ),
-                )
-              else
-                Container(
-                  width: double.infinity,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
-                    color: Colors.grey[50],
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.image_not_supported_outlined,
-                      size: 40,
-                      color: Colors.grey[400],
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 12),
-              Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        final base64 = await ImageHandler.pickImageAsBase64(
-                          source: ImageSource.gallery,
-                        );
-                        if (base64 != null) {
-                          setState(() {
-                            if (selectedImages.length < 3) {
-                              selectedImages.add(base64);
-                            }
-                          });
-                        }
-                      },
-                      icon: const Icon(Icons.image),
-                      label: const Text('Galerie'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        final base64 = await ImageHandler.pickImageAsBase64(
-                          source: ImageSource.camera,
-                        );
-                        if (base64 != null) {
-                          setState(() {
-                            if (selectedImages.length < 3) {
-                              selectedImages.add(base64);
-                            }
-                          });
-                        }
-                      },
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('Caméra'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '${selectedImages.length}/3 photos',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final nom = nomController.text.trim();
-              final description = descriptionController.text.trim();
-              final prixStr = prixController.text.trim();
-
-              if (nom.isEmpty) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('Veuillez entrer un nom')),
-                );
-                return;
-              }
-
-              if (prixStr.isEmpty) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('Veuillez entrer un prix')),
-                );
-                return;
-              }
-
-              final prix = double.tryParse(prixStr);
-              if (prix == null || prix <= 0) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('Prix invalide')),
-                );
-                return;
-              }
-
-              if (authProvider.token != null) {
-                final success = await menuProvider.createPlat(
-                  sousRestaurantId: sousRestaurantId,
-                  categorieId: categorieId,
-                  nom: nom,
-                  description: description.isEmpty ? null : description,
-                  prix: prix,
-                  imagesBase64: selectedImages.isNotEmpty ? selectedImages : null,
-                  token: authProvider.token!,
-                );
-
-                if (success) {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Plat créé'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                    SnackBar(
-                      content: Text(menuProvider.errorMessage ?? 'Erreur'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Créer'),
-          ),
-        ],
-      ),
-    ),
-  );
-  }
-
-  void _showEditPlatDialog(
-    BuildContext context,
-    String sousRestaurantId,
-    String categorieId,
-    Plat plat,
-    AuthProvider authProvider,
-    MenuManagementProvider menuProvider,
-  ) {
-    final nomController = TextEditingController(text: plat.nom);
-    final descriptionController = TextEditingController(text: plat.description ?? '');
-    final prixController = TextEditingController(text: plat.prix.toString());
-    // Seulement les NOUVELLES images (base64)
-    List<String> newImages = [];
-    // Toutes les images existantes originales
-    List<dynamic> originalImages = List.from(plat.images ?? []);
-    // IDs des images existantes à supprimer
-    Set<String> imagesToRemove = {};
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Modifier le Plat'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-              TextField(
-                controller: nomController,
-                decoration: InputDecoration(
-                  labelText: 'Nom du plat',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Description (optionnel)',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                minLines: 2,
-                maxLines: 4,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: prixController,
-                decoration: InputDecoration(
-                  labelText: 'Prix (FCFA)',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              ),
-              const SizedBox(height: 16),
-              // Afficher les images existantes avec option de suppression
-              if (originalImages.isNotEmpty)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Images actuelles (cliquez X pour supprimer):', style: Theme.of(context).textTheme.labelSmall),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 120,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: List.generate(originalImages.length, (index) {
-                            final imageId = originalImages[index]['id'] as String?;
-                            final isMarkedForRemoval = imageId != null && imagesToRemove.contains(imageId);
-                            
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: Stack(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Opacity(
-                                      opacity: isMarkedForRemoval ? 0.5 : 1.0,
-                                      child: Container(
-                                        width: 120,
-                                        height: 120,
-                                        color: Colors.grey[200],
-                                        child: (originalImages[index] is Map && originalImages[index]['donnees'] != null)
-                                            ? Image.memory(
-                                                base64Decode(originalImages[index]['donnees']),
-                                                fit: BoxFit.cover,
-                                              )
-                                            : const Icon(Icons.image, color: Colors.grey),
-                                      ),
-                                    ),
-                                  ),
-                                  if (isMarkedForRemoval)
-                                    Positioned.fill(
-                                      child: Container(
-                                        color: Colors.black.withOpacity(0.3),
-                                        child: const Center(
-                                          child: Icon(
-                                            Icons.check_circle,
-                                            color: Colors.green,
-                                            size: 40,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  Positioned(
-                                    top: 4,
-                                    right: 4,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(3),
-                                      decoration: BoxDecoration(
-                                        color: isMarkedForRemoval ? Colors.green[400] : Colors.red[400],
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: InkWell(
-                                        onTap: () {
-                                          if (imageId != null) {
-                                            setState(() {
-                                              if (imagesToRemove.contains(imageId)) {
-                                                imagesToRemove.remove(imageId);
-                                              } else {
-                                                imagesToRemove.add(imageId);
-                                              }
-                                            });
-                                          }
-                                        },
-                                        child: Icon(
-                                          isMarkedForRemoval ? Icons.check : Icons.close,
-                                          color: Colors.white,
-                                          size: 16,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                        ),
+                  TextField(
+                    controller: nomController,
+                    decoration: InputDecoration(
+                      labelText: 'Nom du plat',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                  ],
-                ),
-              // Afficher les NOUVELLES images
-              if (newImages.isNotEmpty)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Nouvelles images:', style: Theme.of(context).textTheme.labelSmall),
-                    const SizedBox(height: 8),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: descriptionController,
+                    decoration: InputDecoration(
+                      labelText: 'Description (optionnel)',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    minLines: 2,
+                    maxLines: 4,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: prixController,
+                    decoration: InputDecoration(
+                      labelText: 'Prix (FCFA)',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (selectedImages.isNotEmpty)
                     SizedBox(
                       height: 120,
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: List.generate(newImages.length, (index) {
+                          children: List.generate(selectedImages.length, (
+                            index,
+                          ) {
                             return Padding(
                               padding: const EdgeInsets.only(right: 8.0),
                               child: Stack(
@@ -1832,9 +1544,13 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                                       color: Colors.grey[200],
                                       child: Image.memory(
                                         base64Decode(
-                                          newImages[index].startsWith('data:')
-                                              ? newImages[index].split(',').last
-                                              : newImages[index],
+                                          selectedImages[index].startsWith(
+                                                'data:',
+                                              )
+                                              ? selectedImages[index]
+                                                    .split(',')
+                                                    .last
+                                              : selectedImages[index],
                                         ),
                                         fit: BoxFit.cover,
                                       ),
@@ -1852,7 +1568,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                                       child: InkWell(
                                         onTap: () {
                                           setState(() {
-                                            newImages.removeAt(index);
+                                            selectedImages.removeAt(index);
                                           });
                                         },
                                         child: const Icon(
@@ -1869,153 +1585,577 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                           }),
                         ),
                       ),
+                    )
+                  else
+                    Container(
+                      width: double.infinity,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[300]!),
+                        color: Colors.grey[50],
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.image_not_supported_outlined,
+                          size: 40,
+                          color: Colors.grey[400],
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                  ],
-                )
-              else if (originalImages.isEmpty)
-                Container(
-                  width: double.infinity,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
-                    color: Colors.grey[50],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            final base64 = await ImageHandler.pickImageAsBase64(
+                              source: ImageSource.gallery,
+                            );
+                            if (base64 != null) {
+                              setState(() {
+                                if (selectedImages.length < 3) {
+                                  selectedImages.add(base64);
+                                }
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.image),
+                          label: const Text('Galerie'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            final base64 = await ImageHandler.pickImageAsBase64(
+                              source: ImageSource.camera,
+                            );
+                            if (base64 != null) {
+                              setState(() {
+                                if (selectedImages.length < 3) {
+                                  selectedImages.add(base64);
+                                }
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.camera_alt),
+                          label: const Text('Caméra'),
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Center(
-                    child: Icon(
-                      Icons.image_not_supported_outlined,
-                      size: 40,
-                      color: Colors.grey[400],
-                    ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${selectedImages.length}/3 photos',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelSmall?.copyWith(color: Colors.grey[600]),
                   ),
-                ),
-              const SizedBox(height: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Ajouter de nouvelles images:', style: Theme.of(context).textTheme.labelSmall),
-                  const SizedBox(height: 8),
                 ],
               ),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: (originalImages.length - imagesToRemove.length + newImages.length >= 3) ? null : () async {
-                        final base64 = await ImageHandler.pickImageAsBase64(
-                          source: ImageSource.gallery,
-                        );
-                        if (base64 != null && (newImages.length + originalImages.length - imagesToRemove.length) < 3) {
-                          setState(() {
-                            newImages.add(base64);
-                          });
-                        }
-                      },
-                      icon: const Icon(Icons.image),
-                      label: const Text('Galerie'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: (originalImages.length - imagesToRemove.length + newImages.length >= 3) ? null : () async {
-                        final base64 = await ImageHandler.pickImageAsBase64(
-                          source: ImageSource.camera,
-                        );
-                        if (base64 != null && (newImages.length + originalImages.length - imagesToRemove.length) < 3) {
-                          setState(() {
-                            newImages.add(base64);
-                          });
-                        }
-                      },
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('Caméra'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '${newImages.length + originalImages.length - imagesToRemove.length}/3 photos',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final nom = nomController.text.trim();
+                final description = descriptionController.text.trim();
+                final prixStr = prixController.text.trim();
+
+                if (nom.isEmpty) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('Veuillez entrer un nom')),
+                  );
+                  return;
+                }
+
+                if (prixStr.isEmpty) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('Veuillez entrer un prix')),
+                  );
+                  return;
+                }
+
+                final prix = double.tryParse(prixStr);
+                if (prix == null || prix <= 0) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('Prix invalide')),
+                  );
+                  return;
+                }
+
+                if (authProvider.token != null) {
+                  final success = await menuProvider.createPlat(
+                    sousRestaurantId: sousRestaurantId,
+                    categorieId: categorieId,
+                    nom: nom,
+                    description: description.isEmpty ? null : description,
+                    prix: prix,
+                    imagesBase64: selectedImages.isNotEmpty
+                        ? selectedImages
+                        : null,
+                    token: authProvider.token!,
+                  );
+
+                  if (success) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Plat créé'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      SnackBar(
+                        content: Text(menuProvider.errorMessage ?? 'Erreur'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Créer'),
+            ),
+          ],
         ),
       ),
-      actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final nom = nomController.text.trim();
-              final description = descriptionController.text.trim();
-              final prixStr = prixController.text.trim();
+    );
+  }
 
-              if (nom.isEmpty) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('Veuillez entrer un nom')),
-                );
-                return;
-              }
+  void _showEditPlatDialog(
+    BuildContext context,
+    String sousRestaurantId,
+    String categorieId,
+    Plat plat,
+    AuthProvider authProvider,
+    MenuManagementProvider menuProvider,
+  ) {
+    final nomController = TextEditingController(text: plat.nom);
+    final descriptionController = TextEditingController(
+      text: plat.description ?? '',
+    );
+    final prixController = TextEditingController(text: plat.prix.toString());
+    // Seulement les NOUVELLES images (base64)
+    List<String> newImages = [];
+    // Toutes les images existantes originales
+    List<dynamic> originalImages = List.from(plat.images ?? []);
+    // IDs des images existantes à supprimer
+    Set<String> imagesToRemove = {};
 
-              if (prixStr.isEmpty) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('Veuillez entrer un prix')),
-                );
-                return;
-              }
-
-              final prix = double.tryParse(prixStr);
-              if (prix == null || prix <= 0) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('Prix invalide')),
-                );
-                return;
-              }
-
-              if (authProvider.token != null) {
-                final success = await menuProvider.updatePlat(
-                  sousRestaurantId: sousRestaurantId,
-                  categorieId: categorieId,
-                  platId: plat.id,
-                  nom: nom,
-                  description: description.isEmpty ? null : description,
-                  prix: prix,
-                  imagesBase64: newImages.isNotEmpty ? newImages : null,
-                  removeImageIds: imagesToRemove.isNotEmpty ? imagesToRemove.toList() : null,
-                  token: authProvider.token!,
-                );
-
-                if (success) {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Plat modifié'),
-                      backgroundColor: Colors.green,
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Modifier le Plat'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nomController,
+                    decoration: InputDecoration(
+                      labelText: 'Nom du plat',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                  );
-                } else {
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: descriptionController,
+                    decoration: InputDecoration(
+                      labelText: 'Description (optionnel)',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    minLines: 2,
+                    maxLines: 4,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: prixController,
+                    decoration: InputDecoration(
+                      labelText: 'Prix (FCFA)',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Afficher les images existantes avec option de suppression
+                  if (originalImages.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Images actuelles (cliquez X pour supprimer):',
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 120,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: List.generate(originalImages.length, (
+                                index,
+                              ) {
+                                final imageId =
+                                    originalImages[index]['id'] as String?;
+                                final isMarkedForRemoval =
+                                    imageId != null &&
+                                    imagesToRemove.contains(imageId);
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: Stack(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Opacity(
+                                          opacity: isMarkedForRemoval
+                                              ? 0.5
+                                              : 1.0,
+                                          child: Container(
+                                            width: 120,
+                                            height: 120,
+                                            color: Colors.grey[200],
+                                            child:
+                                                (originalImages[index] is Map &&
+                                                    originalImages[index]['donnees'] !=
+                                                        null)
+                                                ? Image.memory(
+                                                    base64Decode(
+                                                      originalImages[index]['donnees'],
+                                                    ),
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : const Icon(
+                                                    Icons.image,
+                                                    color: Colors.grey,
+                                                  ),
+                                          ),
+                                        ),
+                                      ),
+                                      if (isMarkedForRemoval)
+                                        Positioned.fill(
+                                          child: Container(
+                                            color: Colors.black.withOpacity(
+                                              0.3,
+                                            ),
+                                            child: const Center(
+                                              child: Icon(
+                                                Icons.check_circle,
+                                                color: Colors.green,
+                                                size: 40,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      Positioned(
+                                        top: 4,
+                                        right: 4,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(3),
+                                          decoration: BoxDecoration(
+                                            color: isMarkedForRemoval
+                                                ? Colors.green[400]
+                                                : Colors.red[400],
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: InkWell(
+                                            onTap: () {
+                                              if (imageId != null) {
+                                                setState(() {
+                                                  if (imagesToRemove.contains(
+                                                    imageId,
+                                                  )) {
+                                                    imagesToRemove.remove(
+                                                      imageId,
+                                                    );
+                                                  } else {
+                                                    imagesToRemove.add(imageId);
+                                                  }
+                                                });
+                                              }
+                                            },
+                                            child: Icon(
+                                              isMarkedForRemoval
+                                                  ? Icons.check
+                                                  : Icons.close,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  // Afficher les NOUVELLES images
+                  if (newImages.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Nouvelles images:',
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 120,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: List.generate(newImages.length, (
+                                index,
+                              ) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: Stack(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Container(
+                                          width: 120,
+                                          height: 120,
+                                          color: Colors.grey[200],
+                                          child: Image.memory(
+                                            base64Decode(
+                                              newImages[index].startsWith(
+                                                    'data:',
+                                                  )
+                                                  ? newImages[index]
+                                                        .split(',')
+                                                        .last
+                                                  : newImages[index],
+                                            ),
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 4,
+                                        right: 4,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(3),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red[400],
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: InkWell(
+                                            onTap: () {
+                                              setState(() {
+                                                newImages.removeAt(index);
+                                              });
+                                            },
+                                            child: const Icon(
+                                              Icons.close,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    )
+                  else if (originalImages.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[300]!),
+                        color: Colors.grey[50],
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.image_not_supported_outlined,
+                          size: 40,
+                          color: Colors.grey[400],
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Ajouter de nouvelles images:',
+                        style: Theme.of(context).textTheme.labelSmall,
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed:
+                              (originalImages.length -
+                                      imagesToRemove.length +
+                                      newImages.length >=
+                                  3)
+                              ? null
+                              : () async {
+                                  final base64 =
+                                      await ImageHandler.pickImageAsBase64(
+                                        source: ImageSource.gallery,
+                                      );
+                                  if (base64 != null &&
+                                      (newImages.length +
+                                              originalImages.length -
+                                              imagesToRemove.length) <
+                                          3) {
+                                    setState(() {
+                                      newImages.add(base64);
+                                    });
+                                  }
+                                },
+                          icon: const Icon(Icons.image),
+                          label: const Text('Galerie'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed:
+                              (originalImages.length -
+                                      imagesToRemove.length +
+                                      newImages.length >=
+                                  3)
+                              ? null
+                              : () async {
+                                  final base64 =
+                                      await ImageHandler.pickImageAsBase64(
+                                        source: ImageSource.camera,
+                                      );
+                                  if (base64 != null &&
+                                      (newImages.length +
+                                              originalImages.length -
+                                              imagesToRemove.length) <
+                                          3) {
+                                    setState(() {
+                                      newImages.add(base64);
+                                    });
+                                  }
+                                },
+                          icon: const Icon(Icons.camera_alt),
+                          label: const Text('Caméra'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${newImages.length + originalImages.length - imagesToRemove.length}/3 photos',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelSmall?.copyWith(color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final nom = nomController.text.trim();
+                final description = descriptionController.text.trim();
+                final prixStr = prixController.text.trim();
+
+                if (nom.isEmpty) {
                   ScaffoldMessenger.of(ctx).showSnackBar(
-                    SnackBar(
-                      content: Text(menuProvider.errorMessage ?? 'Erreur'),
-                      backgroundColor: Colors.red,
-                    ),
+                    const SnackBar(content: Text('Veuillez entrer un nom')),
                   );
+                  return;
                 }
-              }
-            },
-            child: const Text('Modifier'),
-          ),
-        ],
+
+                if (prixStr.isEmpty) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('Veuillez entrer un prix')),
+                  );
+                  return;
+                }
+
+                final prix = double.tryParse(prixStr);
+                if (prix == null || prix <= 0) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('Prix invalide')),
+                  );
+                  return;
+                }
+
+                if (authProvider.token != null) {
+                  final success = await menuProvider.updatePlat(
+                    sousRestaurantId: sousRestaurantId,
+                    categorieId: categorieId,
+                    platId: plat.id,
+                    nom: nom,
+                    description: description.isEmpty ? null : description,
+                    prix: prix,
+                    imagesBase64: newImages.isNotEmpty ? newImages : null,
+                    removeImageIds: imagesToRemove.isNotEmpty
+                        ? imagesToRemove.toList()
+                        : null,
+                    token: authProvider.token!,
+                  );
+
+                  if (success) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Plat modifié'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      SnackBar(
+                        content: Text(menuProvider.errorMessage ?? 'Erreur'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Modifier'),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
   }
 
   void _showDeleteConfirmDialog(
@@ -2038,9 +2178,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
               Navigator.pop(ctx);
               onConfirm();
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Supprimer'),
           ),
         ],
@@ -2048,13 +2186,12 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     );
   }
 
-  void _showDetailsCategorieDialog(
-    BuildContext context,
-    Categorie categorie,
-  ) {
+  void _showDetailsCategorieDialog(BuildContext context, Categorie categorie) {
     print('[DEBUG] _showDetailsCategorieDialog appelée');
-    print('[DEBUG] categorie: ${categorie.nom}, photoAffichage: ${categorie.photoAffichage != null ? "present" : "null"}, description: ${categorie.description}');
-    
+    print(
+      '[DEBUG] categorie: ${categorie.nom}, photoAffichage: ${categorie.photoAffichage != null ? "present" : "null"}, description: ${categorie.description}',
+    );
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -2090,7 +2227,8 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                if (categorie.description != null && categorie.description!.isNotEmpty)
+                if (categorie.description != null &&
+                    categorie.description!.isNotEmpty)
                   Text(categorie.description!)
                 else
                   Text(
@@ -2114,7 +2252,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
   Widget _buildCategoryImage(String base64String) {
     try {
       Uint8List? imageBytes;
-      
+
       // Extraire le base64 du format data URI
       if (base64String.startsWith('data:')) {
         final parts = base64String.split(',');
@@ -2133,11 +2271,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
           height: double.infinity,
           errorBuilder: (context, error, stackTrace) {
             return Center(
-              child: Icon(
-                Icons.broken_image,
-                size: 32,
-                color: Colors.red[400],
-              ),
+              child: Icon(Icons.broken_image, size: 32, color: Colors.red[400]),
             );
           },
         );
@@ -2147,11 +2281,10 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     }
 
     return Center(
-      child: Icon(
-        Icons.image_not_supported,
-        size: 32,
-        color: Colors.grey[500],
-      ),
+      child: Icon(Icons.image_not_supported, size: 32, color: Colors.grey[500]),
     );
   }
 }
+
+
+

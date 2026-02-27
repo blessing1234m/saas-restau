@@ -132,4 +132,36 @@ describe('SuperAdminService - Password Management', () => {
       ).rejects.toThrow(BadRequestException);
     });
   });
+
+  describe('gestion des établissements', () => {
+    it('devrait créer un établissement avec catégorie transmise', async () => {
+      const dto: any = {
+        nom: 'Test',
+        ville: 'Ville',
+        categorie: 'PRIVILEGE',
+      };
+      (prismaService.etablissement.create as jest.Mock) = jest.fn().mockResolvedValue({
+        ...dto,
+        id: 'etab-1',
+      });
+
+      const result = await service.creerEtablissement(dto);
+      expect(result).toEqual({ id: 'etab-1', ...dto });
+      expect(prismaService.etablissement.create).toHaveBeenCalledWith({
+        data: dto,
+      });
+    });
+
+    it('devrait propager la catégorie lors de la mise à jour', async () => {
+      const existing = { id: 'etab-1', nom: 'Old', ville: 'V', categorie: 'SIMPLE' };
+      (prismaService.etablissement.findUnique as jest.Mock).mockResolvedValue(existing);
+      (prismaService.etablissement.update as jest.Mock).mockResolvedValue({
+        ...existing,
+        categorie: 'PRIVILEGE',
+      });
+
+      const updated = await service.mettreAJourEtablissement('etab-1', { categorie: 'PRIVILEGE' } as any);
+      expect(updated.categorie).toBe('PRIVILEGE');
+    });
+  });
 });
