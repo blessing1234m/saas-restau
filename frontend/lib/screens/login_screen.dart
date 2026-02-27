@@ -63,20 +63,34 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.1),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+                  // Logo depending on theme
+                  Center(
+                    child: Image.asset(
+                      Theme.of(context).brightness == Brightness.dark
+                          ? 'assets/android.png'
+                          : 'assets/book.png',
+                      height: 120,
+                    ),
+                  ),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.03),
                   // Header
-                  Text(
-                    'Connexion',
-                    style: textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.primary,
+                  Center(
+                    child: Text(
+                      'Connexion',
+                      style: textTheme.displaySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    'Connectez-vous à votre compte',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.outline,
+                  Center(
+                    child: Text(
+                      'Connectez-vous à votre compte',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.outline,
+                      ),
                     ),
                   ),
                   SizedBox(height: MediaQuery.of(context).size.height * 0.05),
