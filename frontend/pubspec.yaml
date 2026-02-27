@@ -77,16 +77,16 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icon/icone_bleu_blanc.png"
+  image_path: "assets/icon/icone_phone.png"
   remove_alpha_ios: true
   web:
     generate: true
-    image_path: "assets/icon/icone_bleu_blanc.png"
+    image_path: "assets/icon/icone_phone.png"
     background_color: "#0057B8"
     theme_color: "#0057B8"
   windows:
     generate: true
-    image_path: "assets/icon/icone_bleu_blanc.png"
+    image_path: "assets/icon/icone_phone.png"
     icon_size: 48
 
 # For information on the generic Dart part of this file, see the

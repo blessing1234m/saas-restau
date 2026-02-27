@@ -50,7 +50,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Super Admin Dashboard', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Super Admin MENO', style: TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.person),
