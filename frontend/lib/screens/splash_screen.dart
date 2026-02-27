@@ -68,22 +68,39 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     const logoPath = 'assets/icon/icone_noir_blanc.png';
+    final loginBackgroundColor = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0057B8),
-      body: Center(
-        child: FadeTransition(
-          opacity: _opacityAnimation,
-          child: ScaleTransition(
-            scale: _scaleAnimation,
-            child: Image.asset(
-              logoPath,
-              width: 200,
-              height: 200,
-              fit: BoxFit.contain,
+      backgroundColor: Colors.transparent,
+      body: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          final progress = _controller.value;
+          final blendProgress = ((progress - 0.7) / 0.3).clamp(0.0, 1.0);
+          final backgroundColor = Color.lerp(
+            const Color(0xFF0057B8),
+            loginBackgroundColor,
+            Curves.easeOut.transform(blendProgress),
+          );
+
+          return ColoredBox(
+            color: backgroundColor ?? const Color(0xFF0057B8),
+            child: Center(
+              child: FadeTransition(
+                opacity: _opacityAnimation,
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: Image.asset(
+                    logoPath,
+                    width: 200,
+                    height: 200,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
