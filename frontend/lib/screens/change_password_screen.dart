@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
+import 'package:frontend/widgets/web_page_frame.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -65,8 +66,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         title: const Text('Changer le mot de passe'),
         elevation: 0,
       ),
-      body: Consumer<AuthProvider>(
-        builder: (context, authProvider, _) {
+      body: WebPageFrame(
+        maxWidth: 800,
+        child: Consumer<AuthProvider>(
+          builder: (context, authProvider, _) {
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Column(
@@ -309,7 +312,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               ],
             ),
           );
-        },
+          },
+        ),
       ),
     );
   }

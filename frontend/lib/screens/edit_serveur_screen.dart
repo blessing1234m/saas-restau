@@ -4,6 +4,7 @@ import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/serveur_provider.dart';
 import 'package:frontend/providers/admin_etablissement_provider.dart';
 import 'package:frontend/models/index.dart';
+import 'package:frontend/widgets/web_page_frame.dart';
 
 class EditServeurScreen extends StatefulWidget {
   final Serveur serveur;
@@ -144,13 +145,15 @@ class _EditServeurScreenState extends State<EditServeurScreen> {
         title: const Text('Modifier le serveur'),
         elevation: 0,
       ),
-      body: Consumer2<AdminEtablissementProvider, ServeurProvider>(
-        builder: (context, adminProvider, serveurProvider, _) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
+      body: WebPageFrame(
+        maxWidth: 900,
+        child: Consumer2<AdminEtablissementProvider, ServeurProvider>(
+          builder: (context, adminProvider, serveurProvider, _) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Header card
@@ -426,10 +429,11 @@ class _EditServeurScreenState extends State<EditServeurScreen> {
                     ],
                   ),
                 ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/super_admin_provider.dart';
 import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/models/admin_etablissement.dart';
+import 'package:frontend/widgets/web_page_frame.dart';
 
 class CreateAdminEtablissementScreen extends StatefulWidget {
   final AdminEtablissement? adminToEdit;
@@ -68,13 +69,15 @@ class _CreateAdminEtablissementScreenState
           ),
         ],
       ),
-      body: Consumer2<AuthProvider, SuperAdminProvider>(
-        builder: (context, authProvider, superAdminProvider, _) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
+      body: WebPageFrame(
+        maxWidth: 820,
+        child: Consumer2<AuthProvider, SuperAdminProvider>(
+          builder: (context, authProvider, superAdminProvider, _) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Code Agent
@@ -200,10 +203,11 @@ class _CreateAdminEtablissementScreenState
                       ),
                     ),
                 ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

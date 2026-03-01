@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/providers/admin_etablissement_provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
@@ -6,10 +7,10 @@ import 'package:frontend/providers/menu_management_provider.dart';
 import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/models/index.dart';
 import 'package:frontend/widgets/image_picker_widgets.dart';
+import 'package:frontend/widgets/web_page_frame.dart';
 import 'package:frontend/utils/image_handler.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
-import 'dart:typed_data';
 
 class MenuManagementScreen extends StatefulWidget {
   const MenuManagementScreen({super.key});
@@ -60,8 +61,10 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
           ),
         ],
       ),
-      body: Consumer2<AuthProvider, MenuManagementProvider>(
-        builder: (context, authProvider, menuProvider, _) {
+      body: WebPageFrame(
+        maxWidth: 1400,
+        child: Consumer2<AuthProvider, MenuManagementProvider>(
+          builder: (context, authProvider, menuProvider, _) {
           final isSimpleCategory =
               context.watch<AdminEtablissementProvider>().etablissementCategorie ==
               'SIMPLE';
@@ -74,6 +77,120 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                 setState(() => _currentStep = 1);
               }
             });
+          }
+
+          final mainContent = menuProvider.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : IndexedStack(
+                  index: _currentStep,
+                  children: [
+                    _buildSousRestaurantsView(
+                      context,
+                      authProvider,
+                      menuProvider,
+                      colorScheme,
+                      textTheme,
+                    ),
+                    _buildCategoriesView(
+                      context,
+                      authProvider,
+                      menuProvider,
+                      colorScheme,
+                      textTheme,
+                    ),
+                    _buildPlatsView(
+                      context,
+                      authProvider,
+                      menuProvider,
+                      colorScheme,
+                      textTheme,
+                    ),
+                  ],
+                );
+
+          if (kIsWeb) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: 290,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'Etapes',
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            if (!isSimpleCategory)
+                              _buildWebStepTile(
+                                label: 'Restaurants',
+                                step: 0,
+                                colorScheme: colorScheme,
+                                textTheme: textTheme,
+                              ),
+                            _buildWebStepTile(
+                              label: 'Categories',
+                              step: 1,
+                              colorScheme: colorScheme,
+                              textTheme: textTheme,
+                            ),
+                            _buildWebStepTile(
+                              label: 'Plats',
+                              step: 2,
+                              colorScheme: colorScheme,
+                              textTheme: textTheme,
+                            ),
+                            const Spacer(),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _canGoPrevious(isSimpleCategory)
+                                        ? () => setState(() => _currentStep--)
+                                        : null,
+                                    icon: const Icon(Icons.arrow_back),
+                                    label: const Text('Precedent',),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: FilledButton.icon(
+                                    onPressed: _canGoNext(menuProvider)
+                                        ? () => setState(() => _currentStep++)
+                                        : null,
+                                    icon: const Icon(Icons.arrow_forward),
+                                    label: const Text('Suivant'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
+                    child: Card(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: mainContent,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
           }
 
           return Column(
@@ -119,42 +236,15 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                 ),
               ),
               Divider(color: colorScheme.outlineVariant),
-              // Main content
-              Expanded(
-                child: menuProvider.isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : IndexedStack(
-                        index: _currentStep,
-                        children: [
-                          _buildSousRestaurantsView(
-                            context,
-                            authProvider,
-                            menuProvider,
-                            colorScheme,
-                            textTheme,
-                          ),
-                          _buildCategoriesView(
-                            context,
-                            authProvider,
-                            menuProvider,
-                            colorScheme,
-                            textTheme,
-                          ),
-                          _buildPlatsView(
-                            context,
-                            authProvider,
-                            menuProvider,
-                            colorScheme,
-                            textTheme,
-                          ),
-                        ],
-                      ),
-              ),
+              Expanded(child: mainContent),
             ],
           );
-        },
+          },
+        ),
       ),
-      bottomNavigationBar: Consumer<MenuManagementProvider>(
+      bottomNavigationBar: kIsWeb
+          ? null
+          : Consumer<MenuManagementProvider>(
         builder: (context, menuProvider, _) {
           final isSimpleCategory =
               context.watch<AdminEtablissementProvider>().etablissementCategorie ==
@@ -166,23 +256,14 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton.icon(
-                  onPressed: isSimpleCategory
-                      ? (_currentStep > 1
-                            ? () => setState(() => _currentStep--)
-                            : null)
-                      : (_currentStep > 0
-                            ? () => setState(() => _currentStep--)
-                            : null),
+                  onPressed: _canGoPrevious(isSimpleCategory)
+                      ? () => setState(() => _currentStep--)
+                      : null,
                   icon: const Icon(Icons.arrow_back),
                   label: const Text('Précédent'),
                 ),
                 ElevatedButton.icon(
-                  onPressed:
-                      _currentStep < 2 &&
-                          ((_currentStep == 0 &&
-                                  menuProvider.sousRestaurants.isNotEmpty) ||
-                              (_currentStep == 1 &&
-                                  menuProvider.selectedCategories.isNotEmpty))
+                  onPressed: _canGoNext(menuProvider)
                       ? () => setState(() => _currentStep++)
                       : null,
                   icon: const Icon(Icons.arrow_forward),
@@ -196,6 +277,79 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     );
   }
 
+  bool _canGoPrevious(bool isSimpleCategory) {
+    return isSimpleCategory ? _currentStep > 1 : _currentStep > 0;
+  }
+
+  bool _canGoNext(MenuManagementProvider menuProvider) {
+    return _currentStep < 2 &&
+        ((_currentStep == 0 && menuProvider.sousRestaurants.isNotEmpty) ||
+            (_currentStep == 1 && menuProvider.selectedCategories.isNotEmpty));
+  }
+
+  bool _canJumpToStep(int step) {
+    return (_currentStep == 0 && step <= 0) ||
+        (_currentStep >= 1 && step == 1) ||
+        (_currentStep >= 2 && step == 2);
+  }
+
+  Widget _buildWebStepTile({
+    required String label,
+    required int step,
+    required ColorScheme colorScheme,
+    required TextTheme textTheme,
+  }) {
+    final isActive = _currentStep == step;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Material(
+        color: isActive ? colorScheme.primaryContainer : colorScheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () {
+            if (_canJumpToStep(step)) {
+              setState(() => _currentStep = step);
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 12,
+                  backgroundColor: isActive
+                      ? colorScheme.primary
+                      : colorScheme.outlineVariant,
+                  child: Text(
+                    '${step + 1}',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: isActive
+                          ? colorScheme.onPrimary
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: textTheme.titleSmall?.copyWith(
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                      color: isActive
+                          ? colorScheme.onPrimaryContainer
+                          : colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildStepIndicator(
     String label,
     int step,
@@ -205,9 +359,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     final isActive = _currentStep == step;
     return GestureDetector(
       onTap: () {
-        if ((_currentStep == 0 && step <= 0) ||
-            (_currentStep >= 1 && step == 1) ||
-            (_currentStep >= 2 && step == 2)) {
+        if (_canJumpToStep(step)) {
           setState(() => _currentStep = step);
         }
       },
@@ -492,26 +644,32 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                 ),
               )
             else
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.9,
-                ),
-                itemCount: categories.length,
-                itemBuilder: (context, index) {
-                  final cat = categories[index];
-                  return _buildCategorieCard(
-                    context,
-                    selectedSR.id,
-                    cat,
-                    authProvider,
-                    menuProvider,
-                    colorScheme,
-                    textTheme,
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final maxCardWidth = kIsWeb ? 250.0 : 320.0;
+
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: maxCardWidth,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent: 186,
+                    ),
+                    itemCount: categories.length,
+                    itemBuilder: (context, index) {
+                      final cat = categories[index];
+                      return _buildCategorieCard(
+                        context,
+                        selectedSR.id,
+                        cat,
+                        authProvider,
+                        menuProvider,
+                        colorScheme,
+                        textTheme,
+                      );
+                    },
                   );
                 },
               ),
@@ -538,7 +696,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
         menuProvider.loadPlats(sousRestaurantId, cat.id, authProvider.token!);
       },
       child: Card(
-        elevation: isSelected ? 12 : 4,
+        elevation: isSelected ? 4 : 1,
         color: isSelected ? colorScheme.primaryContainer : colorScheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -553,7 +711,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
             // Photo area avec background gradient
             Container(
               width: double.infinity,
-              height: 100,
+              height: 84,
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
@@ -564,13 +722,19 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                     : colorScheme.primary.withOpacity(0.1),
               ),
               child: cat.photoAffichage != null
-                  ? Center(
-                      child: ClipRRect(
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(12),
-                          topRight: Radius.circular(12),
+                  ? ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        topRight: Radius.circular(12),
+                      ),
+                      child: ColoredBox(
+                        color: colorScheme.surfaceContainerHighest,
+                        child: SizedBox.expand(
+                          child: _buildCategoryImage(
+                            cat.photoAffichage!,
+                            fit: BoxFit.cover,
+                          ),
                         ),
-                        child: _buildCategoryImage(cat.photoAffichage!),
                       ),
                     )
                   : Center(
@@ -579,10 +743,10 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                         children: [
                           Icon(
                             Icons.restaurant_menu,
-                            size: 48,
+                            size: 30,
                             color: colorScheme.primary.withOpacity(0.5),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           Text(
                             'Pas de photo',
                             style: textTheme.labelSmall?.copyWith(
@@ -596,7 +760,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
             // Contenu (nom + description + actions)
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(12.0),
+                padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -604,26 +768,32 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                     Text(
                       cat.nom,
                       style: textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         color: isSelected ? colorScheme.primary : null,
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    // Boutons
                     const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
+                    SizedBox(
+                      height: 26,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
                         IconButton(
                           onPressed: () =>
                               _showDetailsCategorieDialog(context, cat),
                           icon: Icon(
                             Icons.info_outline,
+                            size: 16,
                             color: colorScheme.secondary,
                           ),
                           tooltip: 'Détails',
                           style: IconButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.all(3),
+                            minimumSize: const Size(26, 26),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             backgroundColor: colorScheme.secondary.withOpacity(
                               0.1,
                             ),
@@ -640,9 +810,17 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                             authProvider,
                             menuProvider,
                           ),
-                          icon: Icon(Icons.edit, color: colorScheme.primary),
+                          icon: Icon(
+                            Icons.edit,
+                            size: 16,
+                            color: colorScheme.primary,
+                          ),
                           tooltip: 'Modifier',
                           style: IconButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.all(3),
+                            minimumSize: const Size(26, 26),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             backgroundColor: colorScheme.primary.withOpacity(
                               0.1,
                             ),
@@ -665,16 +843,25 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                               }
                             },
                           ),
-                          icon: Icon(Icons.delete, color: Colors.red[400]),
+                          icon: Icon(
+                            Icons.delete,
+                            size: 16,
+                            color: Colors.red[400],
+                          ),
                           tooltip: 'Supprimer',
                           style: IconButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.all(3),
+                            minimumSize: const Size(26, 26),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             backgroundColor: Colors.red[400]?.withOpacity(0.1),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                         ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -2249,7 +2436,10 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     );
   }
 
-  Widget _buildCategoryImage(String base64String) {
+  Widget _buildCategoryImage(
+    String base64String, {
+    BoxFit fit = BoxFit.cover,
+  }) {
     try {
       Uint8List? imageBytes;
 
@@ -2266,9 +2456,11 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
       if (imageBytes != null) {
         return Image.memory(
           imageBytes,
-          fit: BoxFit.cover,
+          fit: fit,
           width: double.infinity,
           height: double.infinity,
+          alignment: Alignment.center,
+          filterQuality: FilterQuality.medium,
           errorBuilder: (context, error, stackTrace) {
             return Center(
               child: Icon(Icons.broken_image, size: 32, color: Colors.red[400]),

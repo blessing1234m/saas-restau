@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/super_admin_provider.dart';
-import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/models/admin_etablissement.dart';
-import 'package:frontend/models/etablissement.dart';
 import 'package:frontend/screens/create_admin_etablissement_screen.dart';
+import 'package:frontend/widgets/web_page_frame.dart';
 
 class AdminEtablissementManagementScreen extends StatefulWidget {
   const AdminEtablissementManagementScreen({super.key});
@@ -40,8 +39,10 @@ class _AdminEtablissementManagementScreenState extends State<AdminEtablissementM
         title: const Text('Gestion des Admins Établissement'),
         elevation: 0,
       ),
-      body: Consumer2<AuthProvider, SuperAdminProvider>(
-        builder: (context, authProvider, superAdminProvider, _) {
+      body: WebPageFrame(
+        maxWidth: 1200,
+        child: Consumer2<AuthProvider, SuperAdminProvider>(
+          builder: (context, authProvider, superAdminProvider, _) {
           final admins = _getFilteredAdmins(superAdminProvider.admins);
           return Column(
             children: [
@@ -143,7 +144,8 @@ class _AdminEtablissementManagementScreenState extends State<AdminEtablissementM
                 ),
             ],
           );
-        },
+          },
+        ),
       ),
     );
   }

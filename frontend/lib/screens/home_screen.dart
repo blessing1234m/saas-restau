@@ -5,6 +5,7 @@ import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/screens/super_admin_dashboard.dart';
 import 'package:frontend/screens/admin_dashboard.dart';
 import 'package:frontend/screens/serveur_dashboard.dart';
+import 'package:frontend/widgets/web_page_frame.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -75,8 +76,10 @@ class _DefaultHomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Consumer<AuthProvider>(
-        builder: (context, authProvider, _) {
+      body: WebPageFrame(
+        maxWidth: 1200,
+        child: Consumer<AuthProvider>(
+          builder: (context, authProvider, _) {
           final user = authProvider.user;
 
           if (user == null) {
@@ -171,7 +174,8 @@ class _DefaultHomeScreen extends StatelessWidget {
               ),
             ),
           );
-        },
+          },
+        ),
       ),
     );
   }

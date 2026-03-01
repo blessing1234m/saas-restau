@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/serveur_menu_provider.dart';
 import 'package:frontend/providers/theme_provider.dart';
+import 'package:frontend/widgets/web_page_frame.dart';
 import 'dart:convert';
 
 class ServeurDashboard extends StatefulWidget {
@@ -73,10 +74,13 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
           ),
         ],
       ),
-      body: Consumer<AuthProvider>(
-        builder: (context, authProvider, _) {
-          return _buildMenuInterface(context, authProvider, colorScheme);
-        },
+      body: WebPageFrame(
+        maxWidth: 1400,
+        child: Consumer<AuthProvider>(
+          builder: (context, authProvider, _) {
+            return _buildMenuInterface(context, authProvider, colorScheme);
+          },
+        ),
       ),
     );
   }

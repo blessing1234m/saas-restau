@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/screens/change_password_screen.dart';
+import 'package:frontend/widgets/web_page_frame.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -16,8 +17,10 @@ class ProfileScreen extends StatelessWidget {
         title: const Text('Mon Profil'),
         elevation: 0,
       ),
-      body: Consumer<AuthProvider>(
-        builder: (context, authProvider, _) {
+      body: WebPageFrame(
+        maxWidth: 900,
+        child: Consumer<AuthProvider>(
+          builder: (context, authProvider, _) {
           final user = authProvider.user;
 
           if (user == null) {
@@ -189,15 +192,13 @@ class ProfileScreen extends StatelessWidget {
               ],
             ),
           );
-        },
+          },
+        ),
       ),
     );
   }
 
   void _showLogoutDialog(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
     showDialog(
       context: context,
       builder: (BuildContext context) {

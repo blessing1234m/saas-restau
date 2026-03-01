@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/serveur_provider.dart';
 import 'package:frontend/providers/admin_etablissement_provider.dart';
-import 'package:frontend/models/index.dart';
+import 'package:frontend/widgets/web_page_frame.dart';
 
 class CreateServeurScreen extends StatefulWidget {
   const CreateServeurScreen({super.key});
@@ -122,12 +122,14 @@ class _CreateServeurScreenState extends State<CreateServeurScreen> {
         title: const Text('Créer un serveur'),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
+      body: WebPageFrame(
+        maxWidth: 820,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header
@@ -316,6 +318,7 @@ class _CreateServeurScreenState extends State<CreateServeurScreen> {
                   ),
                 ),
               ],
+              ),
             ),
           ),
         ),

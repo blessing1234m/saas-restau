@@ -4,6 +4,7 @@ import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/super_admin_provider.dart';
 import 'package:frontend/models/etablissement.dart';
 import 'package:frontend/screens/create_etablissement_screen.dart';
+import 'package:frontend/widgets/web_page_frame.dart';
 
 class EtablissementsManagementScreen extends StatefulWidget {
   const EtablissementsManagementScreen({super.key});
@@ -49,8 +50,10 @@ class _EtablissementsManagementScreenState
         title: const Text('Gestion des Établissements'),
         elevation: 0,
       ),
-      body: Consumer2<AuthProvider, SuperAdminProvider>(
-        builder: (context, authProvider, superAdminProvider, _) {
+      body: WebPageFrame(
+        maxWidth: 1200,
+        child: Consumer2<AuthProvider, SuperAdminProvider>(
+          builder: (context, authProvider, superAdminProvider, _) {
           // Filtrer les établissements
           final filteredEtablissements = _getFilteredEtablissements(
             superAdminProvider.etablissements,
@@ -197,7 +200,8 @@ class _EtablissementsManagementScreenState
                 ),
             ],
           );
-        },
+          },
+        ),
       ),
     );
   }

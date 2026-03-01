@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/super_admin_provider.dart';
+import 'package:frontend/widgets/web_page_frame.dart';
 
 class SuperAdminStatsScreen extends StatefulWidget {
   const SuperAdminStatsScreen({super.key});
@@ -34,8 +35,10 @@ class _SuperAdminStatsScreenState extends State<SuperAdminStatsScreen> {
         title: const Text('Statistiques Générales'),
         elevation: 0,
       ),
-      body: Consumer2<AuthProvider, SuperAdminProvider>(
-        builder: (context, authProvider, superAdminProvider, _) {
+      body: WebPageFrame(
+        maxWidth: 1200,
+        child: Consumer2<AuthProvider, SuperAdminProvider>(
+          builder: (context, authProvider, superAdminProvider, _) {
           final totalEtablissements = superAdminProvider.totalEtablissements;
           final actifEtablissements = superAdminProvider.actifEtablissements;
           final inactifEtablissements = superAdminProvider.inactifEtablissements;
@@ -191,7 +194,8 @@ class _SuperAdminStatsScreenState extends State<SuperAdminStatsScreen> {
               ],
             ),
           );
-        },
+          },
+        ),
       ),
     );
   }
@@ -253,7 +257,6 @@ class _SuperAdminStatsScreenState extends State<SuperAdminStatsScreen> {
     required int actif,
     required int inactif,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
     final actifPercent = total > 0 ? (actif / total) : 0.0;

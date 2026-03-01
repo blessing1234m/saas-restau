@@ -7,10 +7,10 @@ import 'package:frontend/constants/app_constants.dart';
 import 'package:frontend/providers/admin_etablissement_provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:frontend/widgets/web_page_frame.dart';
 
 class QrMenuScreen extends StatefulWidget {
   const QrMenuScreen({super.key});
@@ -145,8 +145,10 @@ class _QrMenuScreenState extends State<QrMenuScreen> {
       appBar: AppBar(
         title: const Text('QR des menus'),
       ),
-      body: Consumer<AdminEtablissementProvider>(
-        builder: (context, adminProvider, _) {
+      body: WebPageFrame(
+        maxWidth: 1100,
+        child: Consumer<AdminEtablissementProvider>(
+          builder: (context, adminProvider, _) {
           if (adminProvider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -244,7 +246,8 @@ class _QrMenuScreenState extends State<QrMenuScreen> {
               );
             },
           );
-        },
+          },
+        ),
       ),
     );
   }

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/serveur_provider.dart';
-import 'package:frontend/providers/theme_provider.dart';
 import 'package:frontend/models/serveur.dart';
 import 'package:frontend/screens/create_serveur_screen.dart';
 import 'package:frontend/screens/edit_serveur_screen.dart';
+import 'package:frontend/widgets/web_page_frame.dart';
 
 class ServeursManagementScreen extends StatefulWidget {
   const ServeursManagementScreen({super.key});
@@ -61,8 +61,10 @@ class _ServeursManagementScreenState extends State<ServeursManagementScreen> {
         title: const Text('Gestion des Serveurs'),
         elevation: 0,
       ),
-      body: Consumer2<AuthProvider, ServeurProvider>(
-        builder: (context, authProvider, serveurProvider, _) {
+      body: WebPageFrame(
+        maxWidth: 1200,
+        child: Consumer2<AuthProvider, ServeurProvider>(
+          builder: (context, authProvider, serveurProvider, _) {
           final serveurs = _getFilteredServeurs(serveurProvider.serveurs);
 
           return Column(
@@ -207,7 +209,8 @@ class _ServeursManagementScreenState extends State<ServeursManagementScreen> {
                 ),
             ],
           );
-        },
+          },
+        ),
       ),
     );
   }
