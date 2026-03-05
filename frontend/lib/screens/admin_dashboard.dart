@@ -8,6 +8,7 @@ import 'package:frontend/screens/profile_screen.dart';
 import 'package:frontend/screens/qr_menu_screen.dart';
 import 'package:frontend/screens/serveurs_management_screen.dart';
 import 'package:frontend/widgets/web_page_frame.dart';
+import 'package:frontend/widgets/image_picker_widgets.dart';
 import 'package:provider/provider.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -438,6 +439,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
         const SizedBox(height: 8),
         _buildActionButton(
           context,
+          Icons.palette,
+          'Personnaliser le QR',
+          'Définir bannière et logo du menu public',
+          colorScheme,
+          textTheme,
+          onTap: () => _showQrBrandingDialog(context),
+        ),
+        const SizedBox(height: 8),
+        _buildActionButton(
+          context,
           Icons.qr_code_2,
           'QR des menus',
           'Générer un QR code pour chaque sous-restaurant',
@@ -528,6 +539,89 @@ class _AdminDashboardState extends State<AdminDashboard> {
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: onTap,
+      ),
+    );
+  }
+
+  Future<void> _showQrBrandingDialog(BuildContext context) async {
+    final authProvider = context.read<AuthProvider>();
+    final adminProvider = context.read<AdminEtablissementProvider>();
+    if (authProvider.token == null) return;
+
+    String? logoImage = adminProvider.etablissementLogo;
+    String? banniereImage = adminProvider.etablissementBanniere;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Personnaliser le menu QR'),
+        content: SizedBox(
+          width: 540,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                StatefulBuilder(
+                  builder: (context, setState) => SingleImagePickerWidget(
+                    label: 'Logo',
+                    initialImage: logoImage,
+                    maxWidth: 320,
+                    maxHeight: 320,
+                    onImageSelected: (base64Image) {
+                      setState(() {
+                        logoImage = base64Image;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                StatefulBuilder(
+                  builder: (context, setState) => SingleImagePickerWidget(
+                    label: 'Bannière',
+                    initialImage: banniereImage,
+                    maxWidth: 1280,
+                    maxHeight: 720,
+                    onImageSelected: (base64Image) {
+                      setState(() {
+                        banniereImage = base64Image;
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final success = await adminProvider.updateEtablissement(
+                token: authProvider.token!,
+                logoAffichage: logoImage,
+                banniereAffichage: banniereImage,
+              );
+
+              if (!ctx.mounted) return;
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    success
+                        ? 'Logo et bannière enregistrés'
+                        : (adminProvider.errorMessage ?? 'Erreur de mise à jour'),
+                  ),
+                  backgroundColor: success ? Colors.green : Colors.red,
+                ),
+              );
+            },
+            child: const Text('Enregistrer'),
+          ),
+        ],
       ),
     );
   }

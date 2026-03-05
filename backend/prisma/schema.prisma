@@ -58,6 +58,14 @@ model Etablissement {
   ville                 String
   telephone             String?
   email                 String?
+  logoAffichage         Bytes?
+  logoTypeContenu       String?
+  logoNomFichier        String?
+  logoTaille            Int?
+  banniereAffichage     Bytes?
+  banniereTypeContenu   String?
+  banniereNomFichier    String?
+  banniereTaille        Int?
   categorie             CategorieEtablissement @default(SIMPLE)
   estActif              Boolean               @default(true)
   createdAt             DateTime              @default(now())

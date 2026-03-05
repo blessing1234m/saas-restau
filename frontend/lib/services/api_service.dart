@@ -354,6 +354,36 @@ class ApiService {
     }
   }
 
+  /// Update admin's établissement branding/info
+  static Future<Map<String, dynamic>> updateMonEtablissement({
+    required String token,
+    String? nom,
+    String? ville,
+    String? telephone,
+    String? email,
+    String? logoAffichage,
+    String? banniereAffichage,
+  }) async {
+    final response = await patchWithAuth(
+      '/admin-etablissements/mon-etablissement',
+      token,
+      {
+        if (nom != null) 'nom': nom,
+        if (ville != null) 'ville': ville,
+        if (telephone != null) 'telephone': telephone,
+        if (email != null) 'email': email,
+        if (logoAffichage != null) 'logoAffichage': logoAffichage,
+        if (banniereAffichage != null) 'banniereAffichage': banniereAffichage,
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+
+    throw Exception(_extractErrorMessage(response));
+  }
+
   // ========== SOUS-RESTAURANTS ==========
 
   /// Create a new sous-restaurant

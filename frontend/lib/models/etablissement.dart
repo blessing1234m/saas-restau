@@ -4,6 +4,8 @@ class Etablissement {
   final String ville;
   final String? telephone;
   final String? email;
+  final String? logoAffichage;
+  final String? banniereAffichage;
   final String categorie;
   final bool estActif;
   final DateTime createdAt;
@@ -14,6 +16,8 @@ class Etablissement {
     required this.ville,
     this.telephone,
     this.email,
+    this.logoAffichage,
+    this.banniereAffichage,
     required this.categorie,
     required this.estActif,
     required this.createdAt,
@@ -26,6 +30,8 @@ class Etablissement {
       ville: json['ville'] as String,
       telephone: json['telephone'] as String?,
       email: json['email'] as String?,
+      logoAffichage: json['logoAffichage'] as String?,
+      banniereAffichage: json['banniereAffichage'] as String?,
       categorie: json['categorie'] as String? ?? 'SIMPLE',
       estActif: json['estActif'] as bool,
       createdAt: DateTime.parse(json['createdAt'] as String),
@@ -39,6 +45,8 @@ class Etablissement {
       'ville': ville,
       'telephone': telephone,
       'email': email,
+      'logoAffichage': logoAffichage,
+      'banniereAffichage': banniereAffichage,
       'categorie': categorie,
       'estActif': estActif,
       'createdAt': createdAt.toIso8601String(),

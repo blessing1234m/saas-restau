@@ -21,6 +21,7 @@ import { CreateCategorieDto, UpdateCategorieDto } from './dto/categorie.dto';
 import { CreatePlatDto, UpdatePlatDto } from './dto/plat.dto';
 import { CreateServeurDto, UpdateServeurDto, UpdateServeurCompletDto } from './dto/serveur.dto';
 import { ChangePasswordDto, ChangeUserPasswordDto } from '../auth/dto/change-password.dto';
+import { UpdateMonEtablissementDto } from './dto/etablissement.dto';
 
 @Controller('admin-etablissements')
 @UseGuards(AuthGuard('jwt'), RoleGuard, EtablissementActifGuard)
@@ -53,6 +54,17 @@ export class AdminEtablissementController {
     } catch (error) {
       throw error;
     }
+  }
+
+  @Patch('mon-etablissement')
+  async mettreAJourMonEtablissement(
+    @UtilisateurActuel() user,
+    @Body() dto: UpdateMonEtablissementDto,
+  ) {
+    return this.adminService.mettreAJourMonEtablissement(
+      user.utilisateurId,
+      dto,
+    );
   }
 
   // SOUS-RESTAURANTS 

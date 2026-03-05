@@ -19,6 +19,8 @@ class AdminEtablissementProvider extends ChangeNotifier {
   String? get etablissementTelephone => _etablissement?['telephone'];
   String? get etablissementEmail => _etablissement?['email'];
   String? get etablissementCategorie => _etablissement?['categorie'];
+  String? get etablissementLogo => _etablissement?['logoAffichage'];
+  String? get etablissementBanniere => _etablissement?['banniereAffichage'];
   
   List<SousRestaurant> get sousRestaurants => _sousRestaurants;
   List<dynamic> get serveurs => _serveurs;
@@ -53,6 +55,47 @@ class AdminEtablissementProvider extends ChangeNotifier {
       _errorMessage = errorMsg.isEmpty ? 'Erreur de chargement de l\'établissement' : errorMsg;
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // Clear data on logout
+  Future<bool> updateEtablissement({
+    required String token,
+    String? nom,
+    String? ville,
+    String? telephone,
+    String? email,
+    String? logoAffichage,
+    String? banniereAffichage,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await ApiService.updateMonEtablissement(
+        token: token,
+        nom: nom,
+        ville: ville,
+        telephone: telephone,
+        email: email,
+        logoAffichage: logoAffichage,
+        banniereAffichage: banniereAffichage,
+      );
+
+      _etablissement = {
+        ...?_etablissement,
+        ...response,
+      };
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
     }
   }
 

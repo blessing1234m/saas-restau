@@ -50,6 +50,23 @@ export class ServeurService {
     if (!menu) return menu;
     return {
       ...menu,
+      etablissement: menu.etablissement
+        ? {
+            ...menu.etablissement,
+            logoAffichage: menu.etablissement.logoAffichage
+              ? this.convertImageToBase64(
+                  menu.etablissement.logoAffichage,
+                  menu.etablissement.logoTypeContenu || 'image/jpeg',
+                )
+              : null,
+            banniereAffichage: menu.etablissement.banniereAffichage
+              ? this.convertImageToBase64(
+                  menu.etablissement.banniereAffichage,
+                  menu.etablissement.banniereTypeContenu || 'image/jpeg',
+                )
+              : null,
+          }
+        : null,
       categories: (menu.categories || []).map((cat) => ({
         ...this.transformCategorie(cat),
         plats: (cat.plats || []).map((plat) => this.transformPlat(plat)),
@@ -198,6 +215,14 @@ export class ServeurService {
     const etablissement = menu.etablissement?.nom
       ? this.escapeHtml(menu.etablissement.nom)
       : 'Restaurant';
+    const logoSrc =
+      typeof menu.etablissement?.logoAffichage === 'string'
+        ? menu.etablissement.logoAffichage
+        : '';
+    const banniereSrc =
+      typeof menu.etablissement?.banniereAffichage === 'string'
+        ? menu.etablissement.banniereAffichage
+        : '';
     const sousRestaurantNom = this.escapeHtml(menu.nom || 'Menu');
     const categories = menu.categories || [];
     const categoryCardsHtml = categories
@@ -348,15 +373,65 @@ export class ServeurService {
             }
             .wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 56px; }
             .hero {
-              background: linear-gradient(135deg, #0f766e, #115e59);
-              color: #fff;
+              background: #fff;
+              border: 1px solid var(--line);
               border-radius: 16px;
-              padding: 20px;
-              box-shadow: 0 12px 24px rgba(15, 118, 110, 0.22);
+              overflow: hidden;
+              box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
               margin-bottom: 18px;
             }
-            .hero h1 { margin: 0 0 4px; font-size: 28px; }
-            .hero p { margin: 0; opacity: .92; }
+            .hero-banner {
+              width: 100%;
+              height: 190px;
+              background: linear-gradient(135deg, #0f766e, #115e59);
+              position: relative;
+            }
+            .hero-banner img {
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+              display: block;
+            }
+            .hero-body {
+              position: relative;
+              padding: 58px 18px 18px;
+              text-align: center;
+              background: #fff;
+            }
+            .hero-logo {
+              width: 88px;
+              height: 88px;
+              border-radius: 50%;
+              background: #f0f2f6;
+              border: 4px solid #fff;
+              box-shadow: 0 5px 14px rgba(0, 0, 0, 0.15);
+              position: absolute;
+              top: -44px;
+              left: 50%;
+              transform: translateX(-50%);
+              overflow: hidden;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+            .hero-logo img {
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+            }
+            .hero-title {
+              margin: 0;
+              font-size: 30px;
+              font-weight: 800;
+              color: #111827;
+            }
+            .hero-subtitle {
+              margin: 6px 0 0;
+              color: #6b7280;
+              font-size: 14px;
+              letter-spacing: 0.8px;
+              text-transform: uppercase;
+            }
             .toolbar {
               display: flex;
               align-items: center;
@@ -416,7 +491,7 @@ export class ServeurService {
               width: 96px;
               height: 96px;
               border-radius: 24px;
-              object-fit: cover;
+              object-fit: contain;
               flex-shrink: 0;
               background: #f3f4f6;
             }
@@ -580,7 +655,10 @@ export class ServeurService {
             }
             .empty { color: var(--muted); margin: 0; }
             @media (max-width: 680px) {
-              .hero h1 { font-size: 24px; }
+              .hero-banner { height: 150px; }
+              .hero-title { font-size: 24px; }
+              .hero-logo { width: 74px; height: 74px; top: -37px; }
+              .hero-body { padding-top: 46px; }
               .cat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
               .cat-card { min-height: 114px; padding: 14px 16px; border-radius: 18px; }
               .cat-title { font-size: 14px; }
@@ -597,9 +675,20 @@ export class ServeurService {
         <body>
           <main class="wrap">
             <header class="hero">
-              <p>${etablissement}</p>
-              <h1>${sousRestaurantNom}</h1>
-              <p>Menu en ligne</p>
+              <div class="hero-banner">
+                ${banniereSrc
+                  ? `<img src="${banniereSrc}" alt="Bannière ${etablissement}" loading="lazy" />`
+                  : ''}
+              </div>
+              <div class="hero-body">
+                <div class="hero-logo">
+                  ${logoSrc
+                    ? `<img src="${logoSrc}" alt="Logo ${etablissement}" loading="lazy" />`
+                    : '<span>🍽</span>'}
+                </div>
+                <h1 class="hero-title">${sousRestaurantNom}</h1>
+                <p class="hero-subtitle">${etablissement}</p>
+              </div>
             </header>
             <section id="categoriesView">
               <div class="cat-grid">

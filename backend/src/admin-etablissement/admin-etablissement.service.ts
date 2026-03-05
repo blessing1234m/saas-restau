@@ -15,6 +15,7 @@ import { CreateCategorieDto, UpdateCategorieDto } from './dto/categorie.dto';
 import { CreatePlatDto, UpdatePlatDto } from './dto/plat.dto';
 import { CreateServeurDto } from './dto/serveur.dto';
 import { ChangePasswordDto, ChangeUserPasswordDto } from '../auth/dto/change-password.dto';
+import { UpdateMonEtablissementDto } from './dto/etablissement.dto';
 
 @Injectable()
 export class AdminEtablissementService {
@@ -22,6 +23,74 @@ export class AdminEtablissementService {
     private prisma: PrismaService,
     private authService: AuthService,
   ) {}
+
+  private convertImageToBase64(imageBuffer: Buffer, mimeType?: string): string {
+    if (!imageBuffer) return '';
+    const base64 = imageBuffer.toString('base64');
+    return `data:${mimeType || 'image/jpeg'};base64,${base64}`;
+  }
+
+  private parseBase64Image(
+    image: string,
+    fallbackFileName: string,
+  ): { buffer: Buffer; mimeType: string; fileName: string } {
+    let buffer: Buffer;
+    let mimeType = 'image/jpeg';
+
+    if (image.startsWith('data:')) {
+      const [header, base64String] = image.split(',');
+      mimeType = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+      buffer = Buffer.from(base64String, 'base64');
+    } else {
+      buffer = Buffer.from(image, 'base64');
+    }
+
+    return {
+      buffer,
+      mimeType,
+      fileName: fallbackFileName,
+    };
+  }
+
+  private formatEtablissementBranding(etab: any) {
+    if (!etab) return etab;
+
+    const result: any = { ...etab };
+
+    if (etab.logoAffichage) {
+      try {
+        const logoBuffer = Buffer.isBuffer(etab.logoAffichage)
+          ? etab.logoAffichage
+          : Buffer.from(etab.logoAffichage);
+        result.logoAffichage = this.convertImageToBase64(
+          logoBuffer,
+          etab.logoTypeContenu,
+        );
+      } catch {
+        result.logoAffichage = null;
+      }
+    } else {
+      result.logoAffichage = null;
+    }
+
+    if (etab.banniereAffichage) {
+      try {
+        const bannerBuffer = Buffer.isBuffer(etab.banniereAffichage)
+          ? etab.banniereAffichage
+          : Buffer.from(etab.banniereAffichage);
+        result.banniereAffichage = this.convertImageToBase64(
+          bannerBuffer,
+          etab.banniereTypeContenu,
+        );
+      } catch {
+        result.banniereAffichage = null;
+      }
+    } else {
+      result.banniereAffichage = null;
+    }
+
+    return result;
+  }
 
   // Helper pour convertir une catégorie avec photo en base64
   private formatCategorie(cat: any) {
@@ -119,7 +188,7 @@ export class AdminEtablissementService {
         throw new ForbiddenException('L\'établissement associé n\'existe plus');
       }
 
-      return etablissement;
+      return this.formatEtablissementBranding(etablissement);
     } catch (error) {
       if (error instanceof ForbiddenException) {
         throw error;
@@ -127,6 +196,68 @@ export class AdminEtablissementService {
       console.error('ERREUR DANS obtenirMonEtablissement:', error);
       throw new ForbiddenException('Erreur lors du chargement de l\'établissement: ' + (error.message || 'Erreur inconnue'));
     }
+  }
+
+  async mettreAJourMonEtablissement(
+    adminId: string,
+    dto: UpdateMonEtablissementDto,
+  ) {
+    const etablissementId = await this.obtenirEtablissementId(adminId);
+
+    const updateData: any = {
+      nom: dto.nom,
+      ville: dto.ville,
+      telephone: dto.telephone,
+      email: dto.email,
+    };
+
+    if (dto.logoAffichage !== undefined) {
+      if (dto.logoAffichage.trim() == '') {
+        updateData.logoAffichage = null;
+        updateData.logoTypeContenu = null;
+        updateData.logoNomFichier = null;
+        updateData.logoTaille = null;
+      } else {
+        try {
+          const logo = this.parseBase64Image(dto.logoAffichage, 'etablissement-logo.jpg');
+          updateData.logoAffichage = logo.buffer;
+          updateData.logoTypeContenu = logo.mimeType;
+          updateData.logoNomFichier = logo.fileName;
+          updateData.logoTaille = logo.buffer.length;
+        } catch {
+          throw new BadRequestException('Logo invalide');
+        }
+      }
+    }
+
+    if (dto.banniereAffichage !== undefined) {
+      if (dto.banniereAffichage.trim() == '') {
+        updateData.banniereAffichage = null;
+        updateData.banniereTypeContenu = null;
+        updateData.banniereNomFichier = null;
+        updateData.banniereTaille = null;
+      } else {
+        try {
+          const banner = this.parseBase64Image(
+            dto.banniereAffichage,
+            'etablissement-banniere.jpg',
+          );
+          updateData.banniereAffichage = banner.buffer;
+          updateData.banniereTypeContenu = banner.mimeType;
+          updateData.banniereNomFichier = banner.fileName;
+          updateData.banniereTaille = banner.buffer.length;
+        } catch {
+          throw new BadRequestException('Bannière invalide');
+        }
+      }
+    }
+
+    const updated = await this.prisma.etablissement.update({
+      where: { id: etablissementId },
+      data: updateData,
+    });
+
+    return this.formatEtablissementBranding(updated);
   }
 
   // ========== SOUS-RESTAURANTS ==========
