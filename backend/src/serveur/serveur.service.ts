@@ -405,7 +405,7 @@ export class ServeurService {
             }
             .cat-title {
               margin: 0;
-              font-size: 22px;
+              font-size: 16px;
               font-weight: 800;
               color: #1b1f24;
             }
@@ -583,7 +583,7 @@ export class ServeurService {
               .hero h1 { font-size: 24px; }
               .cat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
               .cat-card { min-height: 114px; padding: 14px 16px; border-radius: 18px; }
-              .cat-title { font-size: 18px; }
+              .cat-title { font-size: 14px; }
               .cat-image { width: 78px; height: 78px; border-radius: 18px; }
               .plats-grid { grid-template-columns: 1fr; }
               .plat-thumb { height: 130px; }
