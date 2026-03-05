@@ -279,7 +279,7 @@ class _EtablissementsManagementScreenState
                     color: colorScheme.onPrimary,
                   ),
                 ),
-                backgroundColor: etab.estActif ? Colors.green : Colors.orange,
+                backgroundColor: etab.estActif ? Colors.green : Colors.red,
                 padding: EdgeInsets.zero,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -376,7 +376,7 @@ class _EtablissementsManagementScreenState
                             );
                           }
                         },
-                        color: etab.estActif ? Colors.orange : Colors.green,
+                        color: etab.estActif ? Colors.red : Colors.green,
                       ),
                       _buildActionButton(
                         context,

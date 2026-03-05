@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/providers/admin_etablissement_provider.dart';
@@ -157,7 +157,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                                         ? () => setState(() => _currentStep--)
                                         : null,
                                     icon: const Icon(Icons.arrow_back),
-                                    label: const Text('Precedent',),
+                                    label: const Text('Precedent',style: TextStyle(fontSize: 8),),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -167,7 +167,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                                         ? () => setState(() => _currentStep++)
                                         : null,
                                     icon: const Icon(Icons.arrow_forward),
-                                    label: const Text('Suivant'),
+                                    label: const Text('Suivant',style: TextStyle(fontSize: 9),),
                                   ),
                                 ),
                               ],
@@ -435,7 +435,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
                 child: Text(
-                  'L\'établissement de catégorie SIMPLE ne peut pas avoir de sous-restaurants',
+                  'L\'Etablissement de catégorie SIMPLE ne peut pas avoir de sous-restaurants',
                   style: textTheme.bodySmall?.copyWith(
                     color: colorScheme.error,
                   ),
@@ -644,32 +644,21 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                 ),
               )
             else
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final maxCardWidth = kIsWeb ? 250.0 : 320.0;
-
-                  return GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: maxCardWidth,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      mainAxisExtent: 186,
-                    ),
-                    itemCount: categories.length,
-                    itemBuilder: (context, index) {
-                      final cat = categories[index];
-                      return _buildCategorieCard(
-                        context,
-                        selectedSR.id,
-                        cat,
-                        authProvider,
-                        menuProvider,
-                        colorScheme,
-                        textTheme,
-                      );
-                    },
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: categories.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final cat = categories[index];
+                  return _buildCategorieCard(
+                    context,
+                    selectedSR.id,
+                    cat,
+                    authProvider,
+                    menuProvider,
+                    colorScheme,
+                    textTheme,
                   );
                 },
               ),
@@ -696,7 +685,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
         menuProvider.loadPlats(sousRestaurantId, cat.id, authProvider.token!);
       },
       child: Card(
-        elevation: isSelected ? 4 : 1,
+        elevation: isSelected ? 3 : 1,
         color: isSelected ? colorScheme.primaryContainer : colorScheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -705,169 +694,91 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
             width: isSelected ? 2 : 0,
           ),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Photo area avec background gradient
-            Container(
-              width: double.infinity,
-              height: 84,
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
-                ),
-                color: isSelected
-                    ? colorScheme.primary.withOpacity(0.2)
-                    : colorScheme.primary.withOpacity(0.1),
-              ),
-              child: cat.photoAffichage != null
-                  ? ClipRRect(
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        topRight: Radius.circular(12),
-                      ),
-                      child: ColoredBox(
-                        color: colorScheme.surfaceContainerHighest,
-                        child: SizedBox.expand(
-                          child: _buildCategoryImage(
-                            cat.photoAffichage!,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    )
-                  : Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.restaurant_menu,
-                            size: 30,
-                            color: colorScheme.primary.withOpacity(0.5),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Pas de photo',
-                            style: textTheme.labelSmall?.copyWith(
-                              color: colorScheme.primary.withOpacity(0.6),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          leading: Icon(
+            Icons.category,
+            color: isSelected ? colorScheme.primary : colorScheme.outline,
+          ),
+          title: Text(
+            cat.nom,
+            style: textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: isSelected ? colorScheme.primary : null,
             ),
-            // Contenu (nom + description + actions)
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Nom
-                    Text(
-                      cat.nom,
-                      style: textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: isSelected ? colorScheme.primary : null,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const Spacer(),
-                    SizedBox(
-                      height: 26,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                        IconButton(
-                          onPressed: () =>
-                              _showDetailsCategorieDialog(context, cat),
-                          icon: Icon(
-                            Icons.info_outline,
-                            size: 16,
-                            color: colorScheme.secondary,
-                          ),
-                          tooltip: 'Détails',
-                          style: IconButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            padding: const EdgeInsets.all(3),
-                            minimumSize: const Size(26, 26),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            backgroundColor: colorScheme.secondary.withOpacity(
-                              0.1,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => _showEditCategorieDialog(
-                            context,
-                            sousRestaurantId,
-                            cat,
-                            authProvider,
-                            menuProvider,
-                          ),
-                          icon: Icon(
-                            Icons.edit,
-                            size: 16,
-                            color: colorScheme.primary,
-                          ),
-                          tooltip: 'Modifier',
-                          style: IconButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            padding: const EdgeInsets.all(3),
-                            minimumSize: const Size(26, 26),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            backgroundColor: colorScheme.primary.withOpacity(
-                              0.1,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => _showDeleteConfirmDialog(
-                            context,
-                            'Supprimer ${cat.nom}?',
-                            () async {
-                              if (authProvider.token != null) {
-                                await menuProvider.deleteCategorie(
-                                  sousRestaurantId,
-                                  cat.id,
-                                  authProvider.token!,
-                                );
-                              }
-                            },
-                          ),
-                          icon: Icon(
-                            Icons.delete,
-                            size: 16,
-                            color: Colors.red[400],
-                          ),
-                          tooltip: 'Supprimer',
-                          style: IconButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            padding: const EdgeInsets.all(3),
-                            minimumSize: const Size(26, 26),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            backgroundColor: Colors.red[400]?.withOpacity(0.1),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                        ],
-                      ),
-                    ),
-                  ],
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: (cat.description != null && cat.description!.trim().isNotEmpty)
+              ? Text(
+                  cat.description!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                )
+              : null,
+          trailing: SizedBox(
+            width: 110,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  onPressed: () => _showDetailsCategorieDialog(context, cat),
+                  icon: Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: colorScheme.secondary,
+                  ),
+                  tooltip: 'Détails',
+                  style: IconButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(32, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                 ),
-              ),
+                IconButton(
+                  onPressed: () => _showEditCategorieDialog(
+                    context,
+                    sousRestaurantId,
+                    cat,
+                    authProvider,
+                    menuProvider,
+                  ),
+                  icon: Icon(Icons.edit, size: 18, color: colorScheme.primary),
+                  tooltip: 'Modifier',
+                  style: IconButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(32, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => _showDeleteConfirmDialog(
+                    context,
+                    'Supprimer ${cat.nom}?',
+                    () async {
+                      if (authProvider.token != null) {
+                        await menuProvider.deleteCategorie(
+                          sousRestaurantId,
+                          cat.id,
+                          authProvider.token!,
+                        );
+                      }
+                    },
+                  ),
+                  icon: Icon(Icons.delete, size: 18, color: Colors.red[400]),
+                  tooltip: 'Supprimer',
+                  style: IconButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(32, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -885,7 +796,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     final selectedSR = menuProvider.selectedSousRestaurant;
     final categories = menuProvider.selectedCategories;
 
-    // Trouvez la catégorie sélectionnée ou retournez null si vide
+    // Trouvez la catÃ©gorie sÃ©lectionnÃ©e ou retournez null si vide
     Categorie? selectedCat;
     if (categories.isNotEmpty && menuProvider.selectedCategorieId != null) {
       try {
@@ -1018,7 +929,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     ColorScheme colorScheme,
     TextTheme textTheme,
   ) {
-    // Obtenir la première image si disponible
+    // Obtenir la premiÃ¨re image si disponible
     Widget buildLeading() {
       if (plat.images != null && plat.images!.isNotEmpty) {
         final firstImage = plat.images![0];
@@ -1046,8 +957,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
 
     return Card(
       child: InkWell(
-        onTap: () =>
-            _showPlatDetailsDialog(context, plat, colorScheme, textTheme),
+        onTap: () => _showPlatDetailsDialog(context, plat),
         child: ListTile(
           leading: buildLeading(),
           title: Text(
@@ -1106,7 +1016,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     );
   }
 
-  // Formate le prix sans zéros inutiles
+  // Formate le prix sans zÃ©ros inutiles
   String _formatPrice(double prix) {
     if (prix == prix.toInt()) {
       return prix.toInt().toString();
@@ -1119,137 +1029,161 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
 
   // ========== DIALOGS ==========
 
-  void _showPlatDetailsDialog(
-    BuildContext context,
-    Plat plat,
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-  ) {
+  void _showPlatDetailsDialog(BuildContext context, Plat plat) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final description = (plat.description ?? '').trim();
+    final hasDescription = description.isNotEmpty;
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(plat.nom),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Afficher la première image en grand
-                if (plat.images != null && plat.images!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Builder(
-                      builder: (context) {
-                        final firstImage = plat.images![0];
-                        if (firstImage is Map &&
-                            firstImage['donnees'] != null) {
-                          try {
-                            return ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.memory(
-                                base64Decode(firstImage['donnees']),
-                                fit: BoxFit.cover,
-                                height: 250,
-                                width: double.infinity,
-                              ),
-                            );
-                          } catch (e) {
-                            return Container(
-                              height: 250,
-                              color: Colors.grey[200],
-                              child: const Center(
-                                child: Icon(Icons.broken_image),
-                              ),
-                            );
-                          }
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                  ),
-                // Prix
-                Text(
-                  '${_formatPrice(plat.prix)} FCFA',
-                  style: textTheme.headlineSmall?.copyWith(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Description
-                if (plat.description != null && plat.description!.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (ctx) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Text('Description', style: textTheme.labelLarge),
-                      const SizedBox(height: 8),
-                      Text(plat.description!, style: textTheme.bodyMedium),
-                      const SizedBox(height: 16),
-                    ],
-                  ),
-                // Toutes les images
-                if (plat.images != null && plat.images!.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Photos (${plat.images!.length})',
-                        style: textTheme.labelLarge,
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        height: 100,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: List.generate(plat.images!.length, (
-                              index,
-                            ) {
-                              final image = plat.images![index];
-                              if (image is Map && image['donnees'] != null) {
-                                try {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(4),
-                                      child: Image.memory(
-                                        base64Decode(image['donnees']),
-                                        fit: BoxFit.cover,
-                                        width: 100,
-                                        height: 100,
-                                      ),
-                                    ),
-                                  );
-                                } catch (e) {
-                                  return Container(
-                                    width: 100,
-                                    height: 100,
-                                    color: Colors.grey[200],
-                                    child: const Icon(Icons.image),
-                                  );
-                                }
-                              }
-                              return const SizedBox.shrink();
-                            }),
+                      Expanded(
+                        child: Text(
+                          plat.nom,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      Chip(
+                        label: Text(
+                          '${_formatPrice(plat.prix)} FCFA',
+                          style: textTheme.labelSmall?.copyWith(
+                            color: colorScheme.onPrimaryContainer,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        backgroundColor: colorScheme.primaryContainer,
+                        visualDensity: VisualDensity.compact,
+                      ),
                     ],
                   ),
-              ],
+                  const SizedBox(height: 14),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: AspectRatio(
+                      aspectRatio: 2.2,
+                      child: ColoredBox(
+                        color: colorScheme.surfaceContainerHighest,
+                        child: (plat.images != null && plat.images!.isNotEmpty)
+                            ? _buildPlatImage(plat.images!.first, fit: BoxFit.cover)
+                            : Center(
+                                child: Icon(
+                                  Icons.image_not_supported_outlined,
+                                  size: 42,
+                                  color: colorScheme.outline,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Description',
+                    style: textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      hasDescription ? description : 'Pas de description',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: hasDescription
+                            ? colorScheme.onSurface
+                            : colorScheme.outline,
+                      ),
+                    ),
+                  ),
+                  if (plat.images != null && plat.images!.length > 1) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      'Photos (${plat.images!.length})',
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 74,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: plat.images!.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (context, index) {
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: SizedBox(
+                              width: 74,
+                              child: ColoredBox(
+                                color: colorScheme.surfaceContainerHighest,
+                                child: _buildPlatImage(plat.images![index]),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton.tonal(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Fermer'),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Fermer'),
-          ),
-        ],
       ),
     );
+  }
+
+  Widget _buildPlatImage(dynamic image, {BoxFit fit = BoxFit.cover}) {
+    if (image is Map && image['donnees'] != null) {
+      try {
+        return Image.memory(
+          base64Decode(image['donnees']),
+          fit: fit,
+          width: double.infinity,
+          height: double.infinity,
+          alignment: Alignment.center,
+          filterQuality: FilterQuality.medium,
+          errorBuilder: (context, error, stackTrace) => const Center(
+            child: Icon(Icons.broken_image),
+          ),
+        );
+      } catch (_) {
+        return const Center(child: Icon(Icons.broken_image));
+      }
+    }
+    return const Center(child: Icon(Icons.image_not_supported_outlined));
   }
 
   void _showAddSousRestaurantDialog(
@@ -1932,7 +1866,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     List<String> newImages = [];
     // Toutes les images existantes originales
     List<dynamic> originalImages = List.from(plat.images ?? []);
-    // IDs des images existantes à supprimer
+    // IDs des images existantes Ã  supprimer
     Set<String> imagesToRemove = {};
 
     showDialog(
@@ -2374,64 +2308,109 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
   }
 
   void _showDetailsCategorieDialog(BuildContext context, Categorie categorie) {
-    print('[DEBUG] _showDetailsCategorieDialog appelée');
-    print(
-      '[DEBUG] categorie: ${categorie.nom}, photoAffichage: ${categorie.photoAffichage != null ? "present" : "null"}, description: ${categorie.description}',
-    );
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final description = (categorie.description ?? '').trim();
+    final hasDescription = description.isNotEmpty;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(categorie.nom),
-        contentPadding: const EdgeInsets.all(16.0),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
+      builder: (ctx) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Image
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        categorie.nom,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Chip(
+                      label: Text(
+                        'Categorie',
+                        style: textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                      backgroundColor: colorScheme.primaryContainer,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    width: double.infinity,
-                    height: 200,
-                    color: Colors.grey[200],
-                    child: categorie.photoAffichage != null
-                        ? _buildCategoryImage(categorie.photoAffichage!)
-                        : Icon(
-                            Icons.image_not_supported,
-                            size: 48,
-                            color: Colors.grey[400],
-                          ),
+                  borderRadius: BorderRadius.circular(12),
+                  child: AspectRatio(
+                    aspectRatio: 2.2,
+                    child: ColoredBox(
+                      color: colorScheme.surfaceContainerHighest,
+                      child: categorie.photoAffichage != null
+                          ? _buildCategoryImage(
+                              categorie.photoAffichage!,
+                              fit: BoxFit.cover,
+                            )
+                          : Center(
+                              child: Icon(
+                                Icons.image_not_supported_outlined,
+                                size: 42,
+                                color: colorScheme.outline,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Description',
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    hasDescription ? description : 'Pas de description',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: hasDescription
+                          ? colorScheme.onSurface
+                          : colorScheme.outline,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Description
-                const Text(
-                  'Description',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                if (categorie.description != null &&
-                    categorie.description!.isNotEmpty)
-                  Text(categorie.description!)
-                else
-                  Text(
-                    'Pas de description',
-                    style: TextStyle(color: Colors.grey[600]),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.tonal(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Fermer'),
                   ),
+                ),
               ],
             ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Fermer'),
-          ),
-        ],
       ),
     );
   }
@@ -2477,6 +2456,9 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     );
   }
 }
+
+
+
 
 
 

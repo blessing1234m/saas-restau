@@ -183,7 +183,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                               size: 40,
                                               color: colorScheme.secondary,
                                             ),
-                                            'Compte Serveurs',
+                                            'Compte Tablette',
                                             '$nbrServeurs',
                                             colorScheme,
                                             textTheme,
@@ -236,7 +236,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                   size: 40,
                                   color: colorScheme.secondary,
                                 ),
-                                'Compte Serveurs',
+                                'Compte Tablette',
                                 '$nbrServeurs',
                                 colorScheme,
                                 textTheme,
@@ -422,8 +422,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
         _buildActionButton(
           context,
           Icons.person,
-          'Gérer les serveurs',
-          'Ajouter et gérer les serveurs',
+          'Gérer les tablettes de Présentation',
+          'Ajouter et gérer les tablettes',
           colorScheme,
           textTheme,
           onTap: () {

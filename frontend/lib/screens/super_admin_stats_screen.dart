@@ -92,7 +92,7 @@ class _SuperAdminStatsScreenState extends State<SuperAdminStatsScreen> {
                         title: 'Inactifs',
                         value: inactifEtablissements.toString(),
                         icon: Icons.cancel,
-                        color: Colors.orange,
+                        color: Colors.red,
                       ),
                     ),
                   ],
@@ -147,7 +147,7 @@ class _SuperAdminStatsScreenState extends State<SuperAdminStatsScreen> {
                         title: 'Inactifs',
                         value: inactifAdmins.toString(),
                         icon: Icons.cancel,
-                        color: Colors.orange,
+                        color: Colors.red,
                       ),
                     ),
                   ],
@@ -303,7 +303,7 @@ class _SuperAdminStatsScreenState extends State<SuperAdminStatsScreen> {
                     flex: (inactif * 100).toInt().clamp(0, 100),
                     child: Container(
                       height: 30,
-                      color: Colors.orange,
+                      color: Colors.red,
                       alignment: Alignment.center,
                       child: inactif > 0
                           ? Text(
@@ -326,7 +326,7 @@ class _SuperAdminStatsScreenState extends State<SuperAdminStatsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildLegendItem('Actifs', Colors.green, actif),
-                _buildLegendItem('Inactifs', Colors.orange, inactif),
+                _buildLegendItem('Inactifs', Colors.red, inactif),
               ],
             ),
           ],

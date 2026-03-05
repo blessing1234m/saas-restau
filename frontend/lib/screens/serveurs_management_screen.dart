@@ -58,7 +58,7 @@ class _ServeursManagementScreenState extends State<ServeursManagementScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gestion des Serveurs'),
+        title: const Text('Gestion des Tablettes'),
         elevation: 0,
       ),
       body: WebPageFrame(
@@ -75,7 +75,7 @@ class _ServeursManagementScreenState extends State<ServeursManagementScreen> {
                   children: [
                     TextField(
                       decoration: InputDecoration(
-                        hintText: 'Rechercher un serveur (code agent)...',
+                        hintText: 'Rechercher une tablette (Identifiant)...',
                         prefixIcon: const Icon(Icons.search),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -132,7 +132,7 @@ class _ServeursManagementScreenState extends State<ServeursManagementScreen> {
                       }
                     },
                     icon: const Icon(Icons.add),
-                    label: const Text('Ajouter un serveur'),
+                    label: const Text('Ajouter une tablette'),
                   ),
                 ),
               ),
@@ -180,14 +180,14 @@ class _ServeursManagementScreenState extends State<ServeursManagementScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Aucun serveur trouvé',
+                          'Aucune tablette trouvée',
                           style: textTheme.headlineSmall,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           _search.isNotEmpty
                               ? 'Essayez une autre recherche'
-                              : 'Créez votre premier serveur',
+                              : 'Créez votre premiere tablette',
                           style: textTheme.bodyMedium?.copyWith(
                             color: colorScheme.outline,
                           ),

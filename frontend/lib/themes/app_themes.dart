@@ -4,6 +4,9 @@ class AppThemes {
   static const Color _primaryColor = Color(0xFF2196F3);
   static const Color _primaryDark = Color(0xFF1565C0);
   static const Color _accentColor = Color(0xFFFF5722);
+  static const Color _greyLight = Color(0xFFBDBDBD);
+  static const Color _greyDark = Color(0xFF424242);
+
 
   // Thème clair
   static ThemeData lightTheme = ThemeData(

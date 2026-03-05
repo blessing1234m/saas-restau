@@ -1,6 +1,6 @@
 class AppConstants {
   // API Configuration
-  static const String apiBaseUrl = 'http://192.168.1.92:3000/api';
+  static const String apiBaseUrl = 'http://192.168.1.83:3000/api';
   static const String authEndpoint = '/auth/login';
   static const String publicMenuEndpoint = '/public/sous-restaurants';
   

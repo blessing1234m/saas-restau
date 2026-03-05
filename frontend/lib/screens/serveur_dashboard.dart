@@ -195,13 +195,12 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
         // Categories grid
         Expanded(
           child: GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              // cards should be wider than tall to match mockup
-              childAspectRatio: 2.5,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
+            padding: const EdgeInsets.all(12),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 280,
+              mainAxisExtent: 90,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
             ),
             itemCount: menuProvider.categories.length,
             itemBuilder: (context, index) {
@@ -212,8 +211,6 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
                 colorScheme,
                 () {
                   setState(() => _selectedCategorieId = _safeString(categorie['id']));
-                  final idValue = categorie['id'];
-                  final categorieId = idValue is String ? idValue : idValue.toString();
                   final sousRestId = menuProvider.sousRestaurantActuel?['id'];
                   final sousRestIdStr =
                       sousRestId is String ? sousRestId : sousRestId.toString();
@@ -242,10 +239,10 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
     return GestureDetector(
       onTap: onTap,
       child: Card(
-        elevation: 2,
+        elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             children: [
               // Text part
@@ -259,17 +256,17 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               // Image with colored background
               Container(
-                width: 60,
-                height: 60,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   color: _backgroundForCategorie(categorie),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   child: _buildCategoriImage(
                     categorie,
                     colorScheme,
@@ -455,11 +452,11 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
                   : GridView.builder(
                       padding: const EdgeInsets.all(12),
                       gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 1,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 240,
+                        mainAxisExtent: 178,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
                       ),
                       itemCount: menuProvider.plats.length,
                       itemBuilder: (context, index) {
@@ -494,6 +491,10 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
     final plat = _selectedPlat!;
     final images = (plat['images'] is List) ? (plat['images'] as List) : [];
     final hasImages = images.isNotEmpty;
+
+    final maxContentWidth = MediaQuery.of(context).size.width >= 1100
+        ? 920.0
+        : 760.0;
 
     return Column(
       children: [
@@ -544,150 +545,172 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
         // Content
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Image gallery
-                if (hasImages)
-                  Column(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: _buildGalleryImage(images, colorScheme),
-                      ),
-                      const SizedBox(height: 12),
-                      // Image navigation controls
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          GestureDetector(
-                            onTap: _currentImageIndex > 0
-                                ? () {
-                                    setState(
-                                        () => _currentImageIndex--);
-                                  }
-                                : null,
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _currentImageIndex > 0
-                                    ? colorScheme.primary
-                                    : colorScheme.surfaceVariant,
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxContentWidth),
+                child: Card(
+                  elevation: 1,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Image gallery
+                        if (hasImages)
+                          Column(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: _buildGalleryImage(images, colorScheme),
                               ),
-                              child: Icon(
-                                Icons.chevron_left,
-                                color: _currentImageIndex > 0
-                                    ? colorScheme.onPrimary
-                                    : colorScheme.outline,
-                                size: 24,
+                              const SizedBox(height: 6),
+                              // Image navigation controls
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  GestureDetector(
+                                    onTap: _currentImageIndex > 0
+                                        ? () {
+                                            setState(() => _currentImageIndex--);
+                                          }
+                                        : null,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: _currentImageIndex > 0
+                                            ? colorScheme.primary
+                                            : colorScheme.surfaceVariant,
+                                      ),
+                                      child: Icon(
+                                        Icons.chevron_left,
+                                        color: _currentImageIndex > 0
+                                            ? colorScheme.onPrimary
+                                            : colorScheme.outline,
+                                        size: 18,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.surfaceVariant,
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Text(
+                                      '${_currentImageIndex + 1}/${images.length}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: _currentImageIndex < images.length - 1
+                                        ? () {
+                                            setState(() => _currentImageIndex++);
+                                          }
+                                        : null,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: _currentImageIndex <
+                                                images.length - 1
+                                            ? colorScheme.primary
+                                            : colorScheme.surfaceVariant,
+                                      ),
+                                      child: Icon(
+                                        Icons.chevron_right,
+                                        color: _currentImageIndex <
+                                                images.length - 1
+                                            ? colorScheme.onPrimary
+                                            : colorScheme.outline,
+                                        size: 18,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ),
+                              const SizedBox(height: 10),
+                            ],
+                          )
+                        else
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
+                            width: double.infinity,
+                            height: 230,
                             decoration: BoxDecoration(
                               color: colorScheme.surfaceVariant,
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Text(
-                              '${_currentImageIndex + 1}/${images.length}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(
+                            child: Center(
+                              child: Icon(
+                                Icons.restaurant,
+                                size: 64,
+                                color: colorScheme.outline.withOpacity(0.5),
+                              ),
+                            ),
+                          ),
+                        // Plat details
+                        Text(
+                          _safeString(plat['nom']),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap:
-                                _currentImageIndex < images.length - 1
-                                    ? () {
-                                        setState(
-                                            () => _currentImageIndex++);
-                                      }
-                                    : null,
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _currentImageIndex < images.length - 1
-                                    ? colorScheme.primary
-                                    : colorScheme.surfaceVariant,
+                        ),
+                        const SizedBox(height: 6),
+                        // Price
+                        Text(
+                          '${plat['prix']} FCFA',
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Description
+                        if (plat['description'] != null &&
+                            _safeString(plat['description']).isNotEmpty)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Description',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                               ),
-                              child: Icon(
-                                Icons.chevron_right,
-                                color: _currentImageIndex < images.length - 1
-                                    ? colorScheme.onPrimary
-                                    : colorScheme.outline,
-                                size: 24,
+                              const SizedBox(height: 8),
+                              Text(
+                                _safeString(plat['description']),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      height: 1.2,
+                                    ),
                               ),
-                            ),
+                              const SizedBox(height: 6),
+                            ],
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                  )
-                else
-                  Container(
-                    width: double.infinity,
-                    height: 250,
-                    decoration: BoxDecoration(
-                      color: colorScheme.surfaceVariant,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.restaurant,
-                        size: 64,
-                        color: colorScheme.outline.withOpacity(0.5),
-                      ),
+                      ],
                     ),
                   ),
-                // Plat details
-                Text(
-                  _safeString(plat['nom']),
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
                 ),
-                const SizedBox(height: 12),
-                // Price
-                Text(
-                  '${plat['prix']} FCFA',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 16),
-                // Description
-                if (plat['description'] != null &&
-                    _safeString(plat['description']).isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Description',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _safeString(plat['description']),
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
-              ],
+              ),
             ),
           ),
         ),
@@ -752,14 +775,14 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
     return GestureDetector(
       onTap: onTap,
       child: Card(
-        elevation: 2,
+        elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Plat image
             Expanded(
-              flex: 1,
+              flex: 3,
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(12),
@@ -769,16 +792,16 @@ class _ServeurDashboardState extends State<ServeurDashboard> {
             ),
             // Plat name
             Expanded(
-              flex: 1,
+              flex: 2,
               child: Padding(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       _safeString(plat['nom']),
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                       maxLines: 1,
