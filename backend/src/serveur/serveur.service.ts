@@ -229,44 +229,83 @@ export class ServeurService {
           ? `<p class="cat-description">${this.escapeHtml(cat.description)}</p>`
           : '';
 
-        const platsHtml = (cat.plats || [])
+        const plats = cat.plats || [];
+        const platsHtml = plats
+          .map((plat) => {
+            const nom = this.escapeHtml(plat.nom || 'Plat');
+            const prixValue = Number(plat.prix);
+            const prix = Number.isFinite(prixValue)
+              ? `${prixValue.toLocaleString('fr-FR')} FCFA`
+              : 'Prix indisponible';
+            const detailId = `${catId}-plat-${this.escapeHtml(String(plat.id || nom))}`;
+            const firstImage =
+              Array.isArray(plat.images) && plat.images.length > 0
+                ? plat.images[0]?.donnees
+                : '';
+            const imageSection = firstImage
+              ? `<img class="plat-thumb-image" src="${firstImage}" alt="${nom}" loading="lazy" />`
+              : '<div class="plat-thumb-placeholder">Aucune image</div>';
+
+            return `
+              <button type="button" class="plat-card" data-detail="${detailId}">
+                <div class="plat-thumb">
+                  ${imageSection}
+                </div>
+                <div class="plat-content">
+                  <h3>${nom}</h3>
+                  <span class="plat-price">${prix}</span>
+                </div>
+              </button>
+            `;
+          })
+          .join('');
+
+        const detailsHtml = plats
           .map((plat) => {
             const nom = this.escapeHtml(plat.nom || 'Plat');
             const description = plat.description
-              ? `<p class="plat-description">${this.escapeHtml(plat.description)}</p>`
+              ? `<p class="detail-description">${this.escapeHtml(plat.description)}</p>`
               : '';
             const prixValue = Number(plat.prix);
             const prix = Number.isFinite(prixValue)
               ? `${prixValue.toLocaleString('fr-FR')} FCFA`
               : 'Prix indisponible';
-            // build markup for all available images (horizontal scroll if more than one)
-            let imagesSection: string;
-            if (plat.images && plat.images.length > 0) {
-              const imgsHtml = plat.images
-                .map((img, idx) => {
-                  const url = img.donnees;
-                  return url
-                    ? `<img class="plat-image clickable-image" data-fullscreen-src="${url}" data-image-index="${idx}" src="${url}" alt="${nom}" loading="lazy" style="cursor: pointer;" />`
-                    : '';
-                })
-                .join('');
-              imagesSection = `<div class="plat-images">${imgsHtml}</div>`;
-            } else {
-              imagesSection =
-                '<div class="plat-image plat-placeholder">Aucune image</div>';
-            }
+            const detailId = `${catId}-plat-${this.escapeHtml(String(plat.id || nom))}`;
+            const imageSources = (plat.images || [])
+              .map((img) => img?.donnees)
+              .filter((url) => typeof url === 'string' && url.length > 0);
+
+            const detailGallery = imageSources.length
+              ? `
+                <div class="detail-gallery" data-total="${imageSources.length}" data-index="0">
+                  <img class="detail-main-image" src="${imageSources[0]}" alt="${nom}" loading="lazy" />
+                  <div class="detail-gallery-controls">
+                    <button type="button" class="gallery-btn" data-action="prev">&#x2039;</button>
+                    <span class="detail-counter">1/${imageSources.length}</span>
+                    <button type="button" class="gallery-btn" data-action="next">&#x203a;</button>
+                  </div>
+                  <div class="detail-image-sources" hidden>
+                    ${imageSources.map((src) => `<span data-src="${src}"></span>`).join('')}
+                  </div>
+                </div>
+              `
+              : `
+                <div class="detail-gallery detail-placeholder">
+                  Aucune image
+                </div>
+              `;
 
             return `
-              <article class="plat">
-                ${imagesSection}
-                <div class="plat-content">
-                  <div class="plat-header">
-                    <h3>${nom}</h3>
-                    <span class="plat-price">${prix}</span>
+              <section class="plat-detail-panel" id="${detailId}" hidden>
+                <article class="detail-card">
+                  ${detailGallery}
+                  <div class="detail-content">
+                    <h2>${nom}</h2>
+                    <p class="detail-price">${prix}</p>
+                    ${description}
                   </div>
-                  ${description}
-                </div>
-              </article>
+                </article>
+              </section>
             `;
           })
           .join('');
@@ -275,8 +314,9 @@ export class ServeurService {
           <section class="plats-panel" id="${catId}" hidden>
             <h2>${catNom}</h2>
             ${catDescription}
-            <div class="plats">${platsHtml || '<p class="empty">Aucun plat disponible.</p>'}</div>
+            <div class="plats-grid">${platsHtml || '<p class="empty">Aucun plat disponible.</p>'}</div>
           </section>
+          ${detailsHtml}
         `;
       })
       .join('');
@@ -338,50 +378,55 @@ export class ServeurService {
             }
             .cat-grid {
               display: grid;
-              grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-              gap: 12px;
+              grid-template-columns: repeat(3, minmax(0, 1fr));
+              gap: 16px;
             }
             .cat-card {
-              border: 1px solid var(--line);
+              border: 1px solid #d9d9d9;
               background: #fff;
-              border-radius: 16px;
-              padding: 14px;
-              min-height: 112px;
+              border-radius: 22px;
+              padding: 18px 22px;
+              min-height: 130px;
               box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
               display: flex;
               align-items: center;
               justify-content: space-between;
-              gap: 12px;
+              gap: 16px;
               width: 100%;
               text-align: left;
               cursor: pointer;
             }
             .cat-card:active { transform: scale(0.99); }
-            .cat-left { min-width: 0; }
+            .cat-left {
+              min-width: 0;
+              flex: 1;
+              display: flex;
+              align-items: center;
+            }
             .cat-title {
               margin: 0;
-              font-size: 24px;
+              font-size: 22px;
               font-weight: 800;
-              color: #0f1f17;
+              color: #1b1f24;
             }
             .cat-sub {
-              margin: 6px 0 0;
-              font-size: 13px;
-              color: var(--muted);
+              display: none;
             }
             .cat-image {
-              width: 84px;
-              height: 84px;
-              border-radius: 22px;
+              width: 96px;
+              height: 96px;
+              border-radius: 24px;
               object-fit: cover;
               flex-shrink: 0;
-              background: var(--brand-soft);
+              background: #f3f4f6;
             }
             .cat-image-placeholder {
               display: flex;
               align-items: center;
               justify-content: center;
-              font-size: 30px;
+              font-size: 44px;
+              color: #a1a8b3;
+              background: #e6e9ef;
             }
             .plats-panel {
               background: var(--card);
@@ -391,120 +436,161 @@ export class ServeurService {
             }
             .plats-panel h2 { margin: 0 0 6px; font-size: 21px; }
             .cat-description { margin: 0 0 14px; color: var(--muted); }
-            .plats { display: grid; grid-template-columns: 1fr; gap: 12px; }
-            .plat {
+            .plats-grid {
               display: grid;
-              grid-template-columns: 110px 1fr;
-              gap: 12px;
-              border: 1px solid var(--line);
-              border-radius: 12px;
-              overflow: hidden;
-              background: #fff;
+              grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+              gap: 10px;
+              align-items: start;
             }
-            .plat-image {
+            .plat-card {
+              -webkit-appearance: none;
+              appearance: none;
+              border: 1px solid #d9d9d9;
+              border-radius: 18px;
+              overflow: hidden;
+              padding: 0;
+              text-align: left;
+              background: #ffffff;
+              cursor: pointer;
+              width: 50%;
+              display: flex;
+              flex-direction: column;
+              min-height: 185px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+              transition: transform 0.12s ease, box-shadow 0.12s ease;
+            }
+            .plat-card:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+            }
+            .plat-card:active { transform: scale(0.99); }
+            .plat-thumb {
+              width: 100%;
+              height: 100px;
+              background: #ececec;
+            }
+            .plat-thumb-image {
               width: 100%;
               height: 100%;
-              min-height: 104px;
-              object-fit: cover;
-              background: #f3f4f6;
+              object-fit: contain;
+              display: block;
             }
-            /* container for multiple photos, scrollable horizontally */
-            .plat-images {
-              display: flex;
-              gap: 4px;
-              overflow-x: auto;
-            }
-            .plat-images .plat-image {
-              flex: 0 0 auto;
-              width: 110px;
+            .plat-thumb-placeholder {
+              width: 100%;
               height: 100%;
-            }
-            .plat-placeholder {
               display: flex;
               align-items: center;
               justify-content: center;
-              min-height: 104px;
-              background: #f3f4f6;
-              color: #777;
-              font-size: 12px;
+              color: #7b7b7b;
+              font-size: 13px;
               text-align: center;
               padding: 8px;
             }
-            .plat-content { padding: 10px; }
-            .plat-header {
-              display: flex;
-              gap: 8px;
-              justify-content: space-between;
-              align-items: baseline;
-            }
-            .plat-header h3 { margin: 0; font-size: 17px; }
-            .plat-price { font-weight: 700; color: var(--brand); white-space: nowrap; }
-            .plat-description { margin: 8px 0 0; color: var(--muted); line-height: 1.35; }
-            .empty { color: var(--muted); margin: 0; }
-            /* Modal pour les images fullscreen */
-            .image-modal {
-              display: none;
-              position: fixed;
-              top: 0;
-              left: 0;
-              width: 100%;
-              height: 100%;
-              background: rgba(0, 0, 0, 0.95);
-              z-index: 1000;
-              justify-content: center;
-              align-items: center;
-              padding: 20px;
-            }
-            .image-modal.active {
-              display: flex;
-            }
-            .image-modal-content {
-              position: relative;
+            .plat-content {
+              padding: 10px;
               display: flex;
               flex-direction: column;
-              align-items: center;
-              gap: 12px;
-              max-width: 90vw;
-              max-height: 90vh;
+              justify-content: space-between;
+              gap: 6px;
+              min-height: 72px;
             }
-            .image-modal-img {
-              max-width: 100%;
-              max-height: 85vh;
+            .plat-content h3 {
+              margin: 0;
+              font-size: 16px;
+              line-height: 1.2;
+              font-weight: 800;
+              color: #1b1f24;
+              letter-spacing: 0.1px;
+            }
+            .plat-price {
+              font-weight: 800;
+              color: #2d9cdb;
+              white-space: nowrap;
+              font-size: 16px;
+              letter-spacing: 0.3px;
+            }
+            #platDetailView {
+              background: var(--card);
+              border: 1px solid var(--line);
+              border-radius: 14px;
+              padding: 14px;
+            }
+            .detail-card {
+              display: grid;
+              grid-template-columns: 1fr;
+              gap: 20px;
+            }
+            .detail-gallery {
+              border-radius: 12px;
+              overflow: hidden;
+              background: #f3f4f6;
+              min-height: 150px;
+            }
+            .detail-main-image {
+              width: 100%;
+              height: 200px;
               object-fit: contain;
-              border-radius: 8px;
+              display: block;
             }
-            .image-modal-close {
-              position: absolute;
-              top: 10px;
-              right: 10px;
-              background: rgba(255, 255, 255, 0.3);
-              border: none;
-              color: white;
-              font-size: 28px;
-              width: 40px;
-              height: 40px;
+            .detail-gallery-controls {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 8px 10px;
+              background: #fff;
+              border-top: 1px solid var(--line);
+            }
+            .gallery-btn {
+              border: 0;
+              background: var(--brand);
+              color: #fff;
+              width: 28px;
+              height: 28px;
               border-radius: 50%;
               cursor: pointer;
+              font-size: 18px;
+              line-height: 1;
+            }
+            .detail-counter {
+              font-size: 13px;
+              color: var(--muted);
+              font-weight: 600;
+            }
+            .detail-placeholder {
               display: flex;
               align-items: center;
               justify-content: center;
-              transition: background 0.2s;
+              color: #777;
+              font-size: 13px;
             }
-            .image-modal-close:hover {
-              background: rgba(255, 255, 255, 0.5);
+            .detail-content h2 {
+              margin: 0;
+              font-size: 24px;
             }
-            .image-modal-counter {
-              color: white;
-              font-size: 14px;
-              margin-top: 8px;
+            .detail-price {
+              margin: 8px 0 0;
+              font-size: 20px;
+              font-weight: 700;
+              color: var(--brand);
             }
+            .detail-description {
+              margin: 12px 0 0;
+              color: var(--muted);
+              line-height: 1.45;
+            }
+            .empty { color: var(--muted); margin: 0; }
             @media (max-width: 680px) {
               .hero h1 { font-size: 24px; }
-              .cat-title { font-size: 21px; }
-              .cat-image { width: 78px; height: 78px; }
-              .plat { grid-template-columns: 1fr; }
-              .plat-image, .plat-placeholder { min-height: 180px; }
-              .image-modal-img { max-height: 80vh; }
+              .cat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+              .cat-card { min-height: 114px; padding: 14px 16px; border-radius: 18px; }
+              .cat-title { font-size: 18px; }
+              .cat-image { width: 78px; height: 78px; border-radius: 18px; }
+              .plats-grid { grid-template-columns: 1fr; }
+              .plat-thumb { height: 130px; }
+              .plat-content { min-height: 74px; }
+              .plat-content h3 { font-size: 15px; }
+              .plat-price { font-size: 15px; }
+              .detail-main-image { height: 220px; }
             }
           </style>
         </head>
@@ -527,109 +613,81 @@ export class ServeurService {
               </div>
               ${categoryPanelsHtml}
             </section>
+            <section id="platDetailView" hidden>
+              <div class="toolbar">
+                <button id="backToPlats" type="button" class="back-btn">Retour</button>
+                <h2 id="selectedPlatTitle" class="toolbar-title"></h2>
+              </div>
+            </section>
           </main>
-          <!-- Modal pour afficher les images en fullscreen -->
-          <div id="imageModal" class="image-modal">
-            <div class="image-modal-content">
-              <button id="modalClose" class="image-modal-close">&times;</button>
-              <img id="modalImage" class="image-modal-img" src="" alt="Image plein écran" />
-              <div id="imageCounter" class="image-modal-counter"></div>
-            </div>
-          </div>
           <script>
             (function() {
               var categoriesView = document.getElementById('categoriesView');
               var platsView = document.getElementById('platsView');
+              var platDetailView = document.getElementById('platDetailView');
               var backBtn = document.getElementById('backToCategories');
+              var backToPlatsBtn = document.getElementById('backToPlats');
               var selectedTitle = document.getElementById('selectedCategoryTitle');
+              var selectedPlatTitle = document.getElementById('selectedPlatTitle');
               var cards = document.querySelectorAll('.cat-card');
               var panels = document.querySelectorAll('.plats-panel');
-              var imageModal = document.getElementById('imageModal');
-              var modalImage = document.getElementById('modalImage');
-              var modalClose = document.getElementById('modalClose');
-              var imageCounter = document.getElementById('imageCounter');
-              var clickableImages = document.querySelectorAll('.clickable-image');
+              var platCards = document.querySelectorAll('.plat-card');
+              var detailPanels = document.querySelectorAll('.plat-detail-panel');
 
               function hideAllPanels() {
                 panels.forEach(function(panel) { panel.hidden = true; });
               }
 
-              // Récupérer toutes les images associées au parent de l'image cliquée
-              function getImageGroup(element) {
-                var imageContainer = element.closest('.plat-images') || element.parentElement;
-                return imageContainer.querySelectorAll('.plat-image[data-fullscreen-src]');
+              function hideAllDetails() {
+                detailPanels.forEach(function(panel) { panel.hidden = true; });
               }
 
-              // Afficher la modal avec une image
-              function showImageModal(imageElement, imageIndex) {
-                var imageGroup = getImageGroup(imageElement);
-                var src = imageElement.getAttribute('data-fullscreen-src');
-                modalImage.src = src;
-                imageModal.classList.add('active');
-                
-                // Mettre à jour le compteur
-                if (imageGroup.length > 1) {
-                  imageCounter.textContent = (imageIndex + 1) + ' / ' + imageGroup.length;
-                  
-                  // Permettre la navigation avec les touches
-                  document.currentImageGroup = imageGroup;
-                  document.currentImageIndex = imageIndex;
-                } else {
-                  imageCounter.textContent = '';
+              function initDetailGallery(panel) {
+                if (!panel || panel.dataset.galleryReady === '1') return;
+                var gallery = panel.querySelector('.detail-gallery[data-total]');
+                if (!gallery) {
+                  panel.dataset.galleryReady = '1';
+                  return;
                 }
+
+                var sources = Array.prototype.map.call(
+                  panel.querySelectorAll('.detail-image-sources [data-src]'),
+                  function(node) { return node.getAttribute('data-src'); }
+                ).filter(function(src) { return !!src; });
+
+                if (!sources.length) {
+                  panel.dataset.galleryReady = '1';
+                  return;
+                }
+
+                var mainImage = panel.querySelector('.detail-main-image');
+                var counter = panel.querySelector('.detail-counter');
+                var prevBtn = panel.querySelector('.gallery-btn[data-action="prev"]');
+                var nextBtn = panel.querySelector('.gallery-btn[data-action="next"]');
+                var index = 0;
+
+                function renderImage(nextIndex) {
+                  if (!mainImage || !counter) return;
+                  index = (nextIndex + sources.length) % sources.length;
+                  mainImage.src = sources[index];
+                  counter.textContent = (index + 1) + '/' + sources.length;
+                }
+
+                if (prevBtn) {
+                  prevBtn.addEventListener('click', function() {
+                    renderImage(index - 1);
+                  });
+                }
+                if (nextBtn) {
+                  nextBtn.addEventListener('click', function() {
+                    renderImage(index + 1);
+                  });
+                }
+
+                renderImage(0);
+                panel.dataset.galleryReady = '1';
               }
 
-              // Fermer la modal
-              function closeImageModal() {
-                imageModal.classList.remove('active');
-                document.currentImageGroup = null;
-              }
-
-              // Gestion des clics sur les images
-              clickableImages.forEach(function(img) {
-                img.addEventListener('click', function(e) {
-                  e.preventDefault();
-                  var index = parseInt(this.getAttribute('data-image-index'), 10);
-                  showImageModal(this, index);
-                });
-              });
-
-              // Fermer avec le bouton
-              modalClose.addEventListener('click', function() {
-                closeImageModal();
-              });
-
-              // Fermer en cliquant en dehors
-              imageModal.addEventListener('click', function(e) {
-                if (e.target === imageModal) {
-                  closeImageModal();
-                }
-              });
-
-              // Navigation avec touches fléchées
-              document.addEventListener('keydown', function(e) {
-                if (!imageModal.classList.contains('active')) return;
-                
-                var imageGroup = document.currentImageGroup;
-                var currentIndex = document.currentImageIndex;
-                
-                if (!imageGroup) return;
-                
-                if (e.key === 'ArrowRight') {
-                  e.preventDefault();
-                  var nextIndex = (currentIndex + 1) % imageGroup.length;
-                  showImageModal(imageGroup[nextIndex], nextIndex);
-                } else if (e.key === 'ArrowLeft') {
-                  e.preventDefault();
-                  var prevIndex = (currentIndex - 1 + imageGroup.length) % imageGroup.length;
-                  showImageModal(imageGroup[prevIndex], prevIndex);
-                } else if (e.key === 'Escape') {
-                  e.preventDefault();
-                  closeImageModal();
-                }
-              });
-
-              // Gestion des catégories existante
               cards.forEach(function(card) {
                 card.addEventListener('click', function() {
                   var target = card.getAttribute('data-target');
@@ -637,19 +695,55 @@ export class ServeurService {
                   var panel = document.getElementById(target);
                   if (!panel) return;
                   hideAllPanels();
+                  hideAllDetails();
                   panel.hidden = false;
                   selectedTitle.textContent = name;
+                  selectedPlatTitle.textContent = '';
                   categoriesView.hidden = true;
                   platsView.hidden = false;
+                  platDetailView.hidden = true;
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+              });
+
+              platCards.forEach(function(card) {
+                card.addEventListener('click', function() {
+                  var detailId = card.getAttribute('data-detail');
+                  if (!detailId) return;
+                  var detailPanel = document.getElementById(detailId);
+                  if (!detailPanel || !platDetailView) return;
+
+                  hideAllDetails();
+                  detailPanel.hidden = false;
+                  initDetailGallery(detailPanel);
+
+                  var contentTitle = detailPanel.querySelector('.detail-content h2');
+                  selectedPlatTitle.textContent = contentTitle ? (contentTitle.textContent || '') : '';
+
+                  platDetailView.appendChild(detailPanel);
+                  categoriesView.hidden = true;
+                  platsView.hidden = true;
+                  platDetailView.hidden = false;
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 });
               });
 
               backBtn.addEventListener('click', function() {
                 hideAllPanels();
+                hideAllDetails();
                 platsView.hidden = true;
+                platDetailView.hidden = true;
                 categoriesView.hidden = false;
                 selectedTitle.textContent = '';
+                selectedPlatTitle.textContent = '';
+              });
+
+              backToPlatsBtn.addEventListener('click', function() {
+                hideAllDetails();
+                platDetailView.hidden = true;
+                platsView.hidden = false;
+                categoriesView.hidden = true;
+                selectedPlatTitle.textContent = '';
               });
             })();
           </script>
@@ -753,3 +847,7 @@ export class ServeurService {
     return { message: 'Mot de passe changé avec succès' };
   }
 }
+
+
+
+
