@@ -1583,4 +1583,112 @@ export class AdminEtablissementService {
 
     return { message: 'Mot de passe du serveur changé avec succès' };
   }
+
+  // ========== COMMANDES ==========
+
+  async obtenirCommandes(
+    adminId: string,
+    sousRestaurantId?: string,
+    statut?: 'EN_ATTENTE' | 'EN_PREPARATION' | 'SERVIE',
+  ) {
+    const etablissementId = await this.obtenirEtablissementId(adminId);
+
+    const whereClause: any = {
+      sousRestaurant: {
+        etablissementId,
+      },
+    };
+
+    if (sousRestaurantId) {
+      const sousRestaurant = await this.prisma.sousRestaurant.findUnique({
+        where: { id: sousRestaurantId },
+      });
+
+      if (!sousRestaurant || sousRestaurant.etablissementId !== etablissementId) {
+        throw new NotFoundException('Sous-restaurant non trouvé');
+      }
+
+      whereClause.sousRestaurantId = sousRestaurantId;
+    }
+
+    if (statut) {
+      whereClause.statut = statut;
+    }
+
+    return this.prisma.commande.findMany({
+      where: whereClause,
+      include: {
+        items: {
+          include: {
+            plat: true,
+          },
+        },
+        table: true,
+        sousRestaurant: true,
+        serveur: {
+          include: {
+            utilisateur: {
+              select: {
+                codeAgent: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async mettreAJourStatutCommande(
+    adminId: string,
+    commandeId: string,
+    statut: 'EN_ATTENTE' | 'EN_PREPARATION' | 'SERVIE',
+  ) {
+    const etablissementId = await this.obtenirEtablissementId(adminId);
+    const statutsValides = ['EN_ATTENTE', 'EN_PREPARATION', 'SERVIE'];
+
+    if (!statutsValides.includes(statut)) {
+      throw new BadRequestException('Statut invalide');
+    }
+
+    const commande = await this.prisma.commande.findUnique({
+      where: { id: commandeId },
+      include: {
+        sousRestaurant: {
+          select: { etablissementId: true },
+        },
+      },
+    });
+
+    if (!commande) {
+      throw new NotFoundException('Commande non trouvée');
+    }
+
+    if (commande.sousRestaurant.etablissementId !== etablissementId) {
+      throw new ForbiddenException('Vous n\'avez pas accès à cette commande');
+    }
+
+    return this.prisma.commande.update({
+      where: { id: commandeId },
+      data: { statut },
+      include: {
+        items: {
+          include: {
+            plat: true,
+          },
+        },
+        table: true,
+        sousRestaurant: true,
+        serveur: {
+          include: {
+            utilisateur: {
+              select: {
+                codeAgent: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 }

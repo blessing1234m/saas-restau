@@ -8,6 +8,7 @@ import {
   Param,
   Body,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminEtablissementService } from './admin-etablissement.service';
@@ -391,6 +392,34 @@ export class AdminEtablissementController {
       user.utilisateurId,
       serveurId,
       changePasswordDto,
+    );
+  }
+
+  // ========== COMMANDES ==========
+
+  @Get('commandes')
+  async obtenirCommandes(
+    @UtilisateurActuel() user,
+    @Query('sousRestaurantId') sousRestaurantId?: string,
+    @Query('statut') statut?: 'EN_ATTENTE' | 'EN_PREPARATION' | 'SERVIE',
+  ) {
+    return this.adminService.obtenirCommandes(
+      user.utilisateurId,
+      sousRestaurantId,
+      statut,
+    );
+  }
+
+  @Patch('commandes/:commandeId/statut')
+  async mettreAJourStatutCommande(
+    @UtilisateurActuel() user,
+    @Param('commandeId') commandeId: string,
+    @Body('statut') statut: 'EN_ATTENTE' | 'EN_PREPARATION' | 'SERVIE',
+  ) {
+    return this.adminService.mettreAJourStatutCommande(
+      user.utilisateurId,
+      commandeId,
+      statut,
     );
   }
 }

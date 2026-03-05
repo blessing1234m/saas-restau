@@ -1,8 +1,9 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/providers/admin_etablissement_provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/theme_provider.dart';
+import 'package:frontend/screens/admin_commandes_screen.dart';
 import 'package:frontend/screens/menu_management_screen.dart';
 import 'package:frontend/screens/profile_screen.dart';
 import 'package:frontend/screens/qr_menu_screen.dart';
@@ -422,6 +423,23 @@ class _AdminDashboardState extends State<AdminDashboard> {
         const SizedBox(height: 8),
         _buildActionButton(
           context,
+          Icons.receipt_long,
+          'Suivi des commandes',
+          'Voir et mettre à jour les commandes en cours',
+          colorScheme,
+          textTheme,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AdminCommandesScreen(),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 8),
+        _buildActionButton(
+          context,
           Icons.person,
           'Gérer les tablettes de Présentation',
           'Ajouter et gérer les tablettes',
@@ -653,3 +671,4 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 }
+

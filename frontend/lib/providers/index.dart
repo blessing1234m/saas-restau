@@ -4,3 +4,4 @@ export 'admin_etablissement_provider.dart';
 export 'menu_management_provider.dart';
 export 'serveur_provider.dart';
 export 'serveur_menu_provider.dart';
+export 'commandes_provider.dart';

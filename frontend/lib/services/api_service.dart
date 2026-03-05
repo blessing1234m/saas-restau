@@ -356,6 +356,48 @@ class ApiService {
     }
   }
 
+  /// Get commandes for admin etablissement
+  static Future<List<Map<String, dynamic>>> getAdminCommandes({
+    required String token,
+    String? sousRestaurantId,
+    String? statut,
+  }) async {
+    final query = <String>[];
+    if (sousRestaurantId != null && sousRestaurantId.isNotEmpty) {
+      query.add('sousRestaurantId=$sousRestaurantId');
+    }
+    if (statut != null && statut.isNotEmpty) {
+      query.add('statut=$statut');
+    }
+    final endpoint = query.isEmpty
+        ? '/admin-etablissements/commandes'
+        : '/admin-etablissements/commandes?${query.join('&')}';
+
+    final response = await getWithAuth(endpoint, token);
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    }
+    throw Exception(_extractErrorMessage(response));
+  }
+
+  /// Update commande status for admin etablissement
+  static Future<Map<String, dynamic>> updateAdminCommandeStatut({
+    required String token,
+    required String commandeId,
+    required String statut,
+  }) async {
+    final response = await patchWithAuth(
+      '/admin-etablissements/commandes/$commandeId/statut',
+      token,
+      {'statut': statut},
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception(_extractErrorMessage(response));
+  }
+
   /// Update admin's établissement branding/info
   static Future<Map<String, dynamic>> updateMonEtablissement({
     required String token,
