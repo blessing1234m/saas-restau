@@ -122,6 +122,7 @@ model Table {
   id                    String                @id @default(cuid())
   numero                Int
   sousRestaurantId      String
+  tokenPublic           String?               @unique
   estActive             Boolean               @default(true)
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt

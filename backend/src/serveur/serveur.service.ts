@@ -2,6 +2,7 @@ import { Injectable, ForbiddenException, NotFoundException, BadRequestException 
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { ChangePasswordDto } from '../auth/dto/change-password.dto';
+import { CreatePublicCommandeDto } from './dto/public-commande.dto';
 
 @Injectable()
 export class ServeurService {
@@ -81,6 +82,123 @@ export class ServeurService {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  async creerCommandePublic(
+    sousRestaurantId: string,
+    dto: CreatePublicCommandeDto,
+  ) {
+    const sousRestaurant = await this.prisma.sousRestaurant.findUnique({
+      where: { id: sousRestaurantId },
+      include: { etablissement: true },
+    });
+
+    if (!sousRestaurant || !sousRestaurant.estActif || !sousRestaurant.etablissement?.estActif) {
+      throw new NotFoundException('Menu non disponible');
+    }
+
+    const table = (await this.prisma.table.findUnique({
+      where: { id: dto.tableId },
+    })) as any;
+
+    if (!table || !table.estActive || table.sousRestaurantId !== sousRestaurantId) {
+      throw new BadRequestException('Table invalide');
+    }
+
+    if (!table.tokenPublic || table.tokenPublic !== dto.tableToken) {
+      throw new BadRequestException('Token de table invalide');
+    }
+
+    if (!dto.items?.length) {
+      throw new BadRequestException('Panier vide');
+    }
+
+    const plats = await this.prisma.plat.findMany({
+      where: {
+        id: { in: dto.items.map((i) => i.platId) },
+        estActif: true,
+      },
+      include: {
+        categorie: true,
+      },
+    });
+
+    if (plats.length !== dto.items.length) {
+      throw new BadRequestException('Un ou plusieurs plats sont invalides');
+    }
+
+    for (const plat of plats) {
+      if (plat.categorie.sousRestaurantId !== sousRestaurantId) {
+        throw new BadRequestException(`Le plat ${plat.nom} n'appartient pas à ce menu`);
+      }
+    }
+
+    const serveurFallback = await this.prisma.serveur.findFirst({
+      where: {
+        sousRestaurantId,
+        utilisateur: { estActif: true },
+      },
+      orderBy: { createdAt: 'asc' },
+      include: { utilisateur: true },
+    });
+
+    if (!serveurFallback) {
+      throw new BadRequestException(
+        'Aucun serveur/tablette actif configuré pour recevoir les commandes de ce sous-restaurant',
+      );
+    }
+
+    let totalCommande = 0;
+    const itemsData = dto.items.map((item) => {
+      const plat = plats.find((p) => p.id === item.platId)!;
+      const sousTotal = plat.prix * item.quantite;
+      totalCommande += sousTotal;
+      return {
+        platId: item.platId,
+        quantite: item.quantite,
+        prixUnitaire: plat.prix,
+        sousTotal,
+      };
+    });
+
+    const commande = await this.prisma.commande.create({
+      data: {
+        tableId: table.id,
+        sousRestaurantId,
+        serveurId: serveurFallback.id,
+        notes: dto.notes?.trim() || null,
+        totalCommande,
+        items: {
+          create: itemsData,
+        },
+      },
+      include: {
+        table: true,
+        items: {
+          include: {
+            plat: true,
+          },
+        },
+      },
+    });
+
+    return {
+      id: commande.id,
+      statut: commande.statut,
+      totalCommande: commande.totalCommande,
+      createdAt: commande.createdAt,
+      table: {
+        id: commande.table.id,
+        numero: commande.table.numero,
+      },
+      items: commande.items.map((it) => ({
+        platId: it.platId,
+        nom: it.plat.nom,
+        quantite: it.quantite,
+        prixUnitaire: it.prixUnitaire,
+        sousTotal: it.sousTotal,
+      })),
+    };
   }
 
   private async obtenirEtablissementId(utilisateurId: string): Promise<string> {
@@ -279,6 +397,14 @@ export class ServeurService {
                 <div class="plat-content">
                   <h3>${nom}</h3>
                   <span class="plat-price">${prix}</span>
+                  <span
+                    class="add-to-cart"
+                    data-plat-id="${plat.id}"
+                    data-plat-name="${nom}"
+                    data-plat-price="${Number.isFinite(prixValue) ? prixValue : 0}"
+                  >
+                    + Ajouter
+                  </span>
                 </div>
               </button>
             `;
@@ -328,6 +454,15 @@ export class ServeurService {
                     <h2>${nom}</h2>
                     <p class="detail-price">${prix}</p>
                     ${description}
+                    <button
+                      type="button"
+                      class="detail-add-to-cart"
+                      data-plat-id="${plat.id}"
+                      data-plat-name="${nom}"
+                      data-plat-price="${Number.isFinite(prixValue) ? prixValue : 0}"
+                    >
+                      Ajouter au panier
+                    </button>
                   </div>
                 </article>
               </section>
@@ -584,6 +719,20 @@ export class ServeurService {
               font-size: 16px;
               letter-spacing: 0.3px;
             }
+            .add-to-cart {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              align-self: flex-start;
+              margin-top: 4px;
+              padding: 4px 10px;
+              border-radius: 999px;
+              background: #e8f7ef;
+              color: #0f766e;
+              font-size: 12px;
+              font-weight: 700;
+              cursor: pointer;
+            }
             #platDetailView {
               background: var(--card);
               border: 1px solid var(--line);
@@ -653,6 +802,104 @@ export class ServeurService {
               color: var(--muted);
               line-height: 1.45;
             }
+            .detail-add-to-cart {
+              margin-top: 14px;
+              border: 0;
+              border-radius: 10px;
+              background: var(--brand);
+              color: #fff;
+              font-weight: 700;
+              padding: 10px 12px;
+              cursor: pointer;
+            }
+            .cart-bar {
+              position: fixed;
+              left: 50%;
+              transform: translateX(-50%);
+              bottom: 14px;
+              z-index: 999;
+              width: min(92vw, 680px);
+              background: #111827;
+              color: #fff;
+              border-radius: 14px;
+              box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+              padding: 10px 12px;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 10px;
+            }
+            .cart-bar[hidden] { display: none; }
+            .cart-summary {
+              display: flex;
+              flex-direction: column;
+              gap: 2px;
+            }
+            .cart-summary strong { font-size: 14px; }
+            .cart-summary span { font-size: 12px; opacity: .82; }
+            .cart-actions {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            }
+            .cart-clear-btn {
+              border: 1px solid #374151;
+              color: #e5e7eb;
+              background: transparent;
+              border-radius: 10px;
+              padding: 8px 10px;
+              cursor: pointer;
+            }
+            .cart-order-btn {
+              border: 0;
+              background: #10b981;
+              color: #052e16;
+              border-radius: 10px;
+              padding: 8px 12px;
+              font-weight: 800;
+              cursor: pointer;
+            }
+            .order-modal {
+              position: fixed;
+              inset: 0;
+              z-index: 1000;
+              background: rgba(15, 23, 42, 0.55);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 14px;
+            }
+            .order-modal[hidden] { display: none; }
+            .order-card {
+              width: min(94vw, 560px);
+              max-height: 88vh;
+              overflow: auto;
+              border-radius: 14px;
+              background: #fff;
+              border: 1px solid var(--line);
+              padding: 14px;
+            }
+            .order-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+            .order-item { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+            .order-notes {
+              width: 100%;
+              border: 1px solid var(--line);
+              border-radius: 10px;
+              padding: 8px;
+              min-height: 76px;
+              resize: vertical;
+              font: inherit;
+            }
+            .order-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+            .order-cancel, .order-submit {
+              border: 0;
+              border-radius: 10px;
+              padding: 9px 12px;
+              font-weight: 700;
+              cursor: pointer;
+            }
+            .order-cancel { background: #e5e7eb; color: #111827; }
+            .order-submit { background: var(--brand); color: #fff; }
             .empty { color: var(--muted); margin: 0; }
             @media (max-width: 680px) {
               .hero-banner { height: 150px; }
@@ -709,6 +956,31 @@ export class ServeurService {
               </div>
             </section>
           </main>
+          <div id="cartBar" class="cart-bar" hidden>
+            <div class="cart-summary">
+              <strong id="cartCount">0 article</strong>
+              <span id="cartTotal">0 FCFA</span>
+            </div>
+            <div class="cart-actions">
+              <button id="cartClear" type="button" class="cart-clear-btn">Vider</button>
+              <button id="cartOrder" type="button" class="cart-order-btn">Commander</button>
+            </div>
+          </div>
+          <div id="orderModal" class="order-modal" hidden>
+            <div class="order-card">
+              <h3 style="margin:0 0 8px;">Votre commande</h3>
+              <ul id="orderList" class="order-list"></ul>
+              <p id="orderTotal" style="margin:10px 0 0;font-weight:700;"></p>
+              <div style="margin-top:10px;">
+                <label for="orderNotes" style="display:block;margin-bottom:6px;font-size:13px;">Notes (optionnel)</label>
+                <textarea id="orderNotes" class="order-notes" placeholder="Ex: sans oignons"></textarea>
+              </div>
+              <div class="order-actions">
+                <button id="orderCancel" type="button" class="order-cancel">Annuler</button>
+                <button id="orderSubmit" type="button" class="order-submit">Valider</button>
+              </div>
+            </div>
+          </div>
           <script>
             (function() {
               var categoriesView = document.getElementById('categoriesView');
@@ -722,6 +994,27 @@ export class ServeurService {
               var panels = document.querySelectorAll('.plats-panel');
               var platCards = document.querySelectorAll('.plat-card');
               var detailPanels = document.querySelectorAll('.plat-detail-panel');
+              var addButtons = document.querySelectorAll('.add-to-cart, .detail-add-to-cart');
+              var cartBar = document.getElementById('cartBar');
+              var cartCount = document.getElementById('cartCount');
+              var cartTotal = document.getElementById('cartTotal');
+              var cartClear = document.getElementById('cartClear');
+              var cartOrder = document.getElementById('cartOrder');
+              var orderModal = document.getElementById('orderModal');
+              var orderList = document.getElementById('orderList');
+              var orderTotal = document.getElementById('orderTotal');
+              var orderCancel = document.getElementById('orderCancel');
+              var orderSubmit = document.getElementById('orderSubmit');
+              var orderNotes = document.getElementById('orderNotes');
+
+              var query = new URLSearchParams(window.location.search);
+              var tableId = query.get('table') || '';
+              var tableToken = query.get('t') || '';
+              var cart = {};
+
+              function formatPrice(value) {
+                return Number(value || 0).toLocaleString('fr-FR') + ' FCFA';
+              }
 
               function hideAllPanels() {
                 panels.forEach(function(panel) { panel.hidden = true; });
@@ -763,18 +1056,108 @@ export class ServeurService {
                 }
 
                 if (prevBtn) {
-                  prevBtn.addEventListener('click', function() {
-                    renderImage(index - 1);
-                  });
+                  prevBtn.addEventListener('click', function() { renderImage(index - 1); });
                 }
                 if (nextBtn) {
-                  nextBtn.addEventListener('click', function() {
-                    renderImage(index + 1);
-                  });
+                  nextBtn.addEventListener('click', function() { renderImage(index + 1); });
                 }
 
                 renderImage(0);
                 panel.dataset.galleryReady = '1';
+              }
+
+              function refreshCartUI() {
+                var entries = Object.values(cart);
+                var totalQty = entries.reduce(function(acc, item) { return acc + item.quantite; }, 0);
+                var totalPrice = entries.reduce(function(acc, item) { return acc + (item.prix * item.quantite); }, 0);
+
+                if (cartCount) {
+                  cartCount.textContent = totalQty + (totalQty > 1 ? ' articles' : ' article');
+                }
+                if (cartTotal) {
+                  cartTotal.textContent = formatPrice(totalPrice);
+                }
+                if (cartBar) {
+                  cartBar.hidden = totalQty === 0;
+                }
+              }
+
+              function addToCart(platId, nom, prix) {
+                if (!platId) return;
+                var numericPrice = Number(prix || 0);
+                if (!cart[platId]) {
+                  cart[platId] = { platId: platId, nom: nom || 'Plat', prix: numericPrice, quantite: 0 };
+                }
+                cart[platId].quantite += 1;
+                refreshCartUI();
+              }
+
+              function openOrderModal() {
+                var entries = Object.values(cart);
+                if (!entries.length) return;
+                if (!orderList || !orderTotal || !orderModal) return;
+
+                var totalPrice = 0;
+                orderList.innerHTML = entries.map(function(item) {
+                  var sousTotal = item.prix * item.quantite;
+                  totalPrice += sousTotal;
+                  return '<li class="order-item"><span>' + item.nom + ' x' + item.quantite + '</span><strong>' + formatPrice(sousTotal) + '</strong></li>';
+                }).join('');
+
+                orderTotal.textContent = 'Total: ' + formatPrice(totalPrice);
+                orderModal.hidden = false;
+              }
+
+              async function submitOrder() {
+                if (!tableId) {
+                  alert('Ce QR n\\'est pas lié à une table. Régénérez un QR avec table.');
+                  return;
+                }
+
+                var entries = Object.values(cart);
+                if (!entries.length) return;
+
+                var payload = {
+                  tableId: tableId,
+                  tableToken: tableToken,
+                  items: entries.map(function(item) { return { platId: item.platId, quantite: item.quantite }; }),
+                };
+                if (orderNotes && orderNotes.value.trim()) {
+                  payload.notes = orderNotes.value.trim();
+                }
+
+                var orderUrl = window.location.pathname.replace('/menu', '/commandes');
+                var submitBtn = orderSubmit;
+                if (submitBtn) {
+                  submitBtn.disabled = true;
+                  submitBtn.textContent = 'Envoi...';
+                }
+
+                try {
+                  var response = await fetch(orderUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                  });
+
+                  var data = await response.json().catch(function() { return {}; });
+                  if (!response.ok) {
+                    throw new Error(data.message || 'Erreur lors de la commande');
+                  }
+
+                  alert('Commande validée. Numéro: ' + (data.id || 'N/A'));
+                  cart = {};
+                  if (orderNotes) orderNotes.value = '';
+                  if (orderModal) orderModal.hidden = true;
+                  refreshCartUI();
+                } catch (error) {
+                  alert(error && error.message ? error.message : 'Erreur lors de la commande');
+                } finally {
+                  if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Valider';
+                  }
+                }
               }
 
               cards.forEach(function(card) {
@@ -817,6 +1200,37 @@ export class ServeurService {
                 });
               });
 
+              addButtons.forEach(function(button) {
+                button.addEventListener('click', function(event) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  addToCart(
+                    this.getAttribute('data-plat-id') || '',
+                    this.getAttribute('data-plat-name') || 'Plat',
+                    Number(this.getAttribute('data-plat-price') || '0'),
+                  );
+                });
+              });
+
+              if (cartClear) {
+                cartClear.addEventListener('click', function() {
+                  cart = {};
+                  refreshCartUI();
+                });
+              }
+              if (cartOrder) {
+                cartOrder.addEventListener('click', openOrderModal);
+              }
+              if (orderCancel && orderModal) {
+                orderCancel.addEventListener('click', function() { orderModal.hidden = true; });
+                orderModal.addEventListener('click', function(e) {
+                  if (e.target === orderModal) orderModal.hidden = true;
+                });
+              }
+              if (orderSubmit) {
+                orderSubmit.addEventListener('click', submitOrder);
+              }
+
               backBtn.addEventListener('click', function() {
                 hideAllPanels();
                 hideAllDetails();
@@ -834,6 +1248,8 @@ export class ServeurService {
                 categoriesView.hidden = true;
                 selectedPlatTitle.textContent = '';
               });
+
+              refreshCartUI();
             })();
           </script>
         </body>

@@ -1,5 +1,6 @@
-import { Controller, Get, Header, Param } from '@nestjs/common';
+import { Body, Controller, Get, Header, Param, Post } from '@nestjs/common';
 import { ServeurService } from './serveur.service';
+import { CreatePublicCommandeDto } from './dto/public-commande.dto';
 
 @Controller('public')
 export class PublicMenuController {
@@ -18,5 +19,13 @@ export class PublicMenuController {
     @Param('sousRestaurantId') sousRestaurantId: string,
   ) {
     return this.serveurService.genererMenuPublicHtml(sousRestaurantId);
+  }
+
+  @Post('sous-restaurants/:sousRestaurantId/commandes')
+  async creerCommandePublic(
+    @Param('sousRestaurantId') sousRestaurantId: string,
+    @Body() dto: CreatePublicCommandeDto,
+  ) {
+    return this.serveurService.creerCommandePublic(sousRestaurantId, dto);
   }
 }

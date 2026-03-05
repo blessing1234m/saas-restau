@@ -153,8 +153,6 @@ export class SuperAdminService {
   async creerAdminEtablissement(
     createAdminDto: CreateAdminEtablissementDto,
   ) {
-    console.log('🔐 CREATING ADMIN:', createAdminDto);
-    
     // Vérifier que le code agent est unique
     const utilisateurExistant = await this.prisma.utilisateur.findUnique({
       where: { codeAgent: createAdminDto.codeAgent },

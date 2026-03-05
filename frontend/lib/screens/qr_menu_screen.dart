@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:frontend/constants/app_constants.dart';
 import 'package:frontend/providers/admin_etablissement_provider.dart';
 import 'package:frontend/providers/auth_provider.dart';
+import 'package:frontend/services/api_service.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:path_provider/path_provider.dart';
@@ -20,7 +21,8 @@ class QrMenuScreen extends StatefulWidget {
 }
 
 class _QrMenuScreenState extends State<QrMenuScreen> {
-  final Map<int, GlobalKey> _qrKeys = {};
+  final Map<String, GlobalKey> _qrKeys = {};
+  final Set<String> _regeneratingTableIds = {};
   @override
   void initState() {
     super.initState();
@@ -31,11 +33,15 @@ class _QrMenuScreenState extends State<QrMenuScreen> {
     }
   }
 
-  String _buildMenuUrl(String sousRestaurantId) {
+  String _buildMenuUrl(String sousRestaurantId, {String? tableId, String? tableToken}) {
     final base = AppConstants.apiBaseUrl.endsWith('/')
         ? AppConstants.apiBaseUrl.substring(0, AppConstants.apiBaseUrl.length - 1)
         : AppConstants.apiBaseUrl;
-    return '$base${AppConstants.publicMenuEndpoint}/$sousRestaurantId/menu';
+    final params = <String>[];
+    if (tableId != null && tableId.isNotEmpty) params.add('table=$tableId');
+    if (tableToken != null && tableToken.isNotEmpty) params.add('t=$tableToken');
+    final query = params.isNotEmpty ? '?${params.join('&')}' : '';
+    return '$base${AppConstants.publicMenuEndpoint}/$sousRestaurantId/menu$query';
   }
 
   Future<void> _copyUrl(String url) async {
@@ -46,7 +52,7 @@ class _QrMenuScreenState extends State<QrMenuScreen> {
     );
   }
 
-  Future<void> _downloadQrCode(int index, String sousRestaurantName) async {
+  Future<void> _downloadQrCode(String qrKeyId, String sousRestaurantName) async {
     try {
       // Request permissions
       if (Platform.isAndroid) {
@@ -61,7 +67,7 @@ class _QrMenuScreenState extends State<QrMenuScreen> {
       }
 
       // Capture the QR code image
-      final key = _qrKeys[index];
+      final key = _qrKeys[qrKeyId];
       if (key == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -137,6 +143,46 @@ class _QrMenuScreenState extends State<QrMenuScreen> {
     }
   }
 
+  Future<void> _regenererTokenTable({
+    required String sousRestaurantId,
+    required String tableId,
+  }) async {
+    final authProvider = context.read<AuthProvider>();
+    final adminProvider = context.read<AdminEtablissementProvider>();
+    final token = authProvider.token;
+
+    if (token == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Session invalide')),
+      );
+      return;
+    }
+
+    setState(() => _regeneratingTableIds.add(tableId));
+    try {
+      await ApiService.regenererTokenTableQr(
+        sousRestaurantId: sousRestaurantId,
+        tableId: tableId,
+        token: token,
+      );
+      await adminProvider.loadEtablissement(token);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Token QR regenere avec succes')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur regeneration token: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _regeneratingTableIds.remove(tableId));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -179,13 +225,50 @@ class _QrMenuScreenState extends State<QrMenuScreen> {
             );
           }
 
+          final qrEntries = <Map<String, String>>[];
+          for (final sr in sousRestaurants) {
+            final tables = sr.tables ?? [];
+            if (tables.isEmpty) {
+              qrEntries.add({
+                'key': '${sr.id}-menu',
+                'label': sr.nom,
+                'srId': sr.id,
+                'tableId': '',
+              });
+            } else {
+              for (final t in tables) {
+                final tableId = (t['id'] ?? '').toString();
+                final tableNumber = (t['numero'] ?? '').toString();
+                final tableToken = (t['tokenPublic'] ?? '').toString();
+                qrEntries.add({
+                  'key': '${sr.id}-$tableId',
+                  'label': '${sr.nom} - Table $tableNumber',
+                  'srId': sr.id,
+                  'tableId': tableId,
+                  'tableToken': tableToken,
+                });
+              }
+            }
+          }
+
           return ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: sousRestaurants.length,
+            itemCount: qrEntries.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              final sr = sousRestaurants[index];
-              final menuUrl = _buildMenuUrl(sr.id);
+              final entry = qrEntries[index];
+              final srId = entry['srId']!;
+              final tableId = entry['tableId'] ?? '';
+              final tableToken = entry['tableToken'];
+              final hasTable = tableId.isNotEmpty;
+              final isRegenerating = hasTable && _regeneratingTableIds.contains(tableId);
+              final qrKeyId = entry['key']!;
+              final displayName = entry['label']!;
+              final menuUrl = _buildMenuUrl(
+                srId,
+                tableId: tableId,
+                tableToken: tableToken,
+              );
               return Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -193,7 +276,7 @@ class _QrMenuScreenState extends State<QrMenuScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        sr.nom,
+                        displayName,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -202,7 +285,7 @@ class _QrMenuScreenState extends State<QrMenuScreen> {
                       Center(
                         child: RepaintBoundary(
                           key: _qrKeys.putIfAbsent(
-                            index,
+                            qrKeyId,
                             () => GlobalKey(),
                           ),
                           child: Container(
@@ -234,10 +317,27 @@ class _QrMenuScreenState extends State<QrMenuScreen> {
                           ),
                           OutlinedButton.icon(
                             onPressed: () =>
-                                _downloadQrCode(index, sr.nom),
+                                _downloadQrCode(qrKeyId, displayName),
                             icon: const Icon(Icons.download),
                             label: const Text('Telecharger'),
                           ),
+                          if (hasTable)
+                            OutlinedButton.icon(
+                              onPressed: isRegenerating
+                                  ? null
+                                  : () => _regenererTokenTable(
+                                        sousRestaurantId: srId,
+                                        tableId: tableId,
+                                      ),
+                              icon: isRegenerating
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.refresh),
+                              label: Text(isRegenerating ? 'Regeneration...' : 'Regenerer QR'),
+                            ),
                         ],
                       ),
                     ],

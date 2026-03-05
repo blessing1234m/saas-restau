@@ -4,6 +4,8 @@ import 'package:frontend/constants/app_constants.dart';
 import 'package:frontend/models/index.dart';
 
 class ApiService {
+  static const Duration _defaultTimeout = Duration(seconds: 10);
+  static const Duration _writeTimeout = Duration(seconds: 60);
     /// Crée un nouvel admin établissement
     static Future<void> createAdminEtablissement({
       required String codeAgent,
@@ -65,7 +67,7 @@ class ApiService {
           'motDePasse': motDePasse,
         }),
       ).timeout(
-        const Duration(seconds: 10),
+        _defaultTimeout,
         onTimeout: () => throw Exception('Request timeout'),
       );
 
@@ -102,7 +104,7 @@ class ApiService {
         'Content-Type': 'application/json',
       },
     ).timeout(
-      const Duration(seconds: 10),
+      _defaultTimeout,
       onTimeout: () => throw Exception('Request timeout'),
     );
   }
@@ -121,7 +123,7 @@ class ApiService {
       },
       body: jsonEncode(body),
     ).timeout(
-      const Duration(seconds: 10),
+      _writeTimeout,
       onTimeout: () => throw Exception('Request timeout'),
     );
   }
@@ -140,7 +142,7 @@ class ApiService {
       },
       body: jsonEncode(body),
     ).timeout(
-      const Duration(seconds: 10),
+      _writeTimeout,
       onTimeout: () => throw Exception('Request timeout'),
     );
   }
@@ -159,7 +161,7 @@ class ApiService {
       },
       body: body != null ? jsonEncode(body) : null,
     ).timeout(
-      const Duration(seconds: 10),
+      _writeTimeout,
       onTimeout: () => throw Exception('Request timeout'),
     );
   }
@@ -176,7 +178,7 @@ class ApiService {
         'Content-Type': 'application/json',
       },
     ).timeout(
-      const Duration(seconds: 10),
+      _writeTimeout,
       onTimeout: () => throw Exception('Request timeout'),
     );
   }
@@ -473,6 +475,100 @@ class ApiService {
     if (response.statusCode != 200) {
       throw Exception('Erreur lors de la suppression du sous-restaurant');
     }
+  }
+
+  // ========== TABLES ==========
+
+  /// Create a table in a sous-restaurant
+  static Future<Map<String, dynamic>> createTable({
+    required String sousRestaurantId,
+    required String numero,
+    required String token,
+  }) async {
+    final response = await postWithAuth(
+      '/admin-etablissements/sous-restaurants/$sousRestaurantId/tables',
+      token,
+      {'numero': numero},
+    );
+
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+
+    throw Exception(_extractErrorMessage(response));
+  }
+
+  /// Get all tables for a sous-restaurant
+  static Future<List<Map<String, dynamic>>> getTables(
+    String sousRestaurantId,
+    String token,
+  ) async {
+    final response = await getWithAuth(
+      '/admin-etablissements/sous-restaurants/$sousRestaurantId/tables',
+      token,
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    }
+
+    throw Exception(_extractErrorMessage(response));
+  }
+
+  /// Update a table
+  static Future<Map<String, dynamic>> updateTable({
+    required String sousRestaurantId,
+    required String tableId,
+    required String numero,
+    required String token,
+  }) async {
+    final response = await putWithAuth(
+      '/admin-etablissements/sous-restaurants/$sousRestaurantId/tables/$tableId',
+      token,
+      {'numero': numero},
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+
+    throw Exception(_extractErrorMessage(response));
+  }
+
+  /// Delete a table
+  static Future<void> deleteTable({
+    required String sousRestaurantId,
+    required String tableId,
+    required String token,
+  }) async {
+    final response = await deleteWithAuth(
+      '/admin-etablissements/sous-restaurants/$sousRestaurantId/tables/$tableId',
+      token,
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(_extractErrorMessage(response));
+    }
+  }
+
+  /// Regenerate public token for a table QR
+  static Future<Map<String, dynamic>> regenererTokenTableQr({
+    required String sousRestaurantId,
+    required String tableId,
+    required String token,
+  }) async {
+    final response = await patchWithAuth(
+      '/admin-etablissements/sous-restaurants/$sousRestaurantId/tables/$tableId/regenerer-token',
+      token,
+      null,
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+
+    throw Exception(_extractErrorMessage(response));
   }
 
   // ========== CATEGORIES ==========

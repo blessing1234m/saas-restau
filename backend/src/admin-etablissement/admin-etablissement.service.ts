@@ -16,6 +16,7 @@ import { CreatePlatDto, UpdatePlatDto } from './dto/plat.dto';
 import { CreateServeurDto } from './dto/serveur.dto';
 import { ChangePasswordDto, ChangeUserPasswordDto } from '../auth/dto/change-password.dto';
 import { UpdateMonEtablissementDto } from './dto/etablissement.dto';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class AdminEtablissementService {
@@ -28,6 +29,35 @@ export class AdminEtablissementService {
     if (!imageBuffer) return '';
     const base64 = imageBuffer.toString('base64');
     return `data:${mimeType || 'image/jpeg'};base64,${base64}`;
+  }
+
+  private async genererTokenPublicTable(): Promise<string> {
+    for (let i = 0; i < 5; i++) {
+      const token = randomBytes(16).toString('hex');
+      const exists = await (this.prisma as any).table.findUnique({
+        where: { tokenPublic: token },
+        select: { id: true },
+      });
+      if (!exists) return token;
+    }
+    throw new BadRequestException('Impossible de générer un token de table unique');
+  }
+
+  private async garantirTokenTablesParSousRestaurant(sousRestaurantId: string) {
+    const tables = await (this.prisma as any).table.findMany({
+      where: { sousRestaurantId },
+      select: { id: true, tokenPublic: true },
+    });
+
+    for (const table of tables) {
+      if (!table.tokenPublic) {
+        const token = await this.genererTokenPublicTable();
+        await (this.prisma as any).table.update({
+          where: { id: table.id },
+          data: { tokenPublic: token },
+        });
+      }
+    }
   }
 
   private parseBase64Image(
@@ -119,8 +149,8 @@ export class AdminEtablissementService {
         const mimeType = cat.photoTypeContenu || 'image/jpeg';
         result.photoAffichage = `data:${mimeType};base64,${buffer.toString('base64')}`;
         // log supprimé
-      } catch (error) {
-        console.error('[formatCategorie] Erreur conversion photo en base64:', error, 'cat.photoAffichage type:', typeof cat.photoAffichage);
+      } catch {
+        result.photoAffichage = null;
       }
     }
     
@@ -188,12 +218,31 @@ export class AdminEtablissementService {
         throw new ForbiddenException('L\'établissement associé n\'existe plus');
       }
 
-      return this.formatEtablissementBranding(etablissement);
+      for (const sr of etablissement.sousRestaurants) {
+        await this.garantirTokenTablesParSousRestaurant(sr.id);
+      }
+
+      const etablissementAvecTokens = await this.prisma.etablissement.findUnique({
+        where: { id: admin.etablissementId },
+        include: {
+          sousRestaurants: {
+            where: { estActif: true },
+            include: {
+              tables: true,
+              categories: {
+                where: { estActive: true },
+              },
+            },
+          },
+          serveurs: true,
+        },
+      });
+
+      return this.formatEtablissementBranding(etablissementAvecTokens);
     } catch (error) {
       if (error instanceof ForbiddenException) {
         throw error;
       }
-      console.error('ERREUR DANS obtenirMonEtablissement:', error);
       throw new ForbiddenException('Erreur lors du chargement de l\'établissement: ' + (error.message || 'Erreur inconnue'));
     }
   }
@@ -477,10 +526,11 @@ export class AdminEtablissementService {
       throw new BadRequestException('Cette table existe déjà dans ce sous-restaurant');
     }
 
-    return this.prisma.table.create({
+    return (this.prisma as any).table.create({
       data: {
         numero: createTableDto.numero,
         sousRestaurantId,
+        tokenPublic: await this.genererTokenPublicTable(),
       },
     });
   }
@@ -568,6 +618,36 @@ export class AdminEtablissementService {
     });
   }
 
+  async regenererTokenTable(
+    adminId: string,
+    sousRestaurantId: string,
+    tableId: string,
+  ) {
+    const etablissementId = await this.obtenirEtablissementId(adminId);
+
+    const sousRestaurant = await this.prisma.sousRestaurant.findUnique({
+      where: { id: sousRestaurantId },
+    });
+
+    if (!sousRestaurant || sousRestaurant.etablissementId !== etablissementId) {
+      throw new NotFoundException('Sous-restaurant non trouvé');
+    }
+
+    const table = await this.prisma.table.findUnique({
+      where: { id: tableId },
+    });
+
+    if (!table || table.sousRestaurantId !== sousRestaurantId) {
+      throw new NotFoundException('Table non trouvée');
+    }
+
+    const tokenPublic = await this.genererTokenPublicTable();
+    return (this.prisma as any).table.update({
+      where: { id: tableId },
+      data: { tokenPublic },
+    });
+  }
+
   // ========== CATÉGORIES ==========
 
   async creerCategorie(
@@ -623,7 +703,6 @@ export class AdminEtablissementService {
           photoTaille: buffer.length,
         };
       } catch (error) {
-        console.error('[CATEGORIE] Erreur traitement photo:', error);
         throw new BadRequestException('Erreur lors du traitement de la photo');
       }
     }
@@ -636,13 +715,7 @@ export class AdminEtablissementService {
         sousRestaurantId,
         ...photoData,
       },
-    }).then(cat => {
-      // log succès création supprimé
-      return this.formatCategorie(cat);
-    }).catch(error => {
-      console.error('[CATEGORIE] Erreur Prisma lors de la création:', error);
-      throw error;
-    });
+    }).then(cat => this.formatCategorie(cat));
   }
 
   async obtenirCategories(

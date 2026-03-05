@@ -494,57 +494,425 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     TextTheme textTheme,
   ) {
     final isSelected = menuProvider.selectedSousRestaurantId == sr.id;
+    final tables = sr.tables ?? const <dynamic>[];
 
     return Card(
       color: isSelected ? colorScheme.primaryContainer : null,
-      child: ListTile(
-        leading: Icon(
-          Icons.restaurant,
-          color: isSelected ? colorScheme.primary : colorScheme.outline,
-        ),
-        title: Text(
-          sr.nom,
-          style: textTheme.bodyLarge?.copyWith(
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      child: Column(
+        children: [
+          ListTile(
+            leading: Icon(
+              Icons.restaurant,
+              color: isSelected ? colorScheme.primary : colorScheme.outline,
+            ),
+            title: Text(
+              sr.nom,
+              style: textTheme.bodyLarge?.copyWith(
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            subtitle: sr.description != null ? Text(sr.description!) : null,
+            trailing: PopupMenuButton(
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  child: const Text('Gerer les tables'),
+                  onTap: () => _showManageTablesDialog(
+                    context,
+                    sr,
+                    authProvider,
+                    menuProvider,
+                  ),
+                ),
+                PopupMenuItem(
+                  child: const Text('Modifier'),
+                  onTap: () => _showEditSousRestaurantDialog(
+                    context,
+                    sr,
+                    authProvider,
+                    menuProvider,
+                  ),
+                ),
+                PopupMenuItem(
+                  child: const Text('Supprimer'),
+                  onTap: () => _showDeleteConfirmDialog(
+                    context,
+                    'Supprimer ${sr.nom}?',
+                    () async {
+                      if (authProvider.token != null) {
+                        await menuProvider.deleteSousRestaurant(
+                          sr.id,
+                          authProvider.token!,
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+            onTap: () {
+              menuProvider.selectSousRestaurant(sr.id);
+              Future.microtask(() {
+                if (authProvider.token != null) {
+                  menuProvider.loadCategories(sr.id, authProvider.token!);
+                }
+              });
+            },
           ),
-        ),
-        subtitle: sr.description != null ? Text(sr.description!) : null,
-        trailing: PopupMenuButton(
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              child: const Text('Modifier'),
-              onTap: () => _showEditSousRestaurantDialog(
-                context,
-                sr,
-                authProvider,
-                menuProvider,
-              ),
-            ),
-            PopupMenuItem(
-              child: const Text('Supprimer'),
-              onTap: () => _showDeleteConfirmDialog(
-                context,
-                'Supprimer ${sr.nom}?',
-                () async {
-                  if (authProvider.token != null) {
-                    await menuProvider.deleteSousRestaurant(
-                      sr.id,
-                      authProvider.token!,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Divider(height: 1),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Tables (${tables.length})',
+                      style: textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () async {
+                        final numero = await _showTableNumberDialog(
+                          context,
+                          title: 'Ajouter une table',
+                        );
+                        if (numero == null || numero.isEmpty) return;
+                        if (authProvider.token == null) return;
+
+                        final success = await menuProvider.createTable(
+                          sousRestaurantId: sr.id,
+                          numero: numero,
+                          token: authProvider.token!,
+                        );
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(this.context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              success
+                                  ? 'Table ajoutee'
+                                  : (menuProvider.errorMessage ?? 'Erreur'),
+                            ),
+                            backgroundColor: success ? Colors.green : Colors.red,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Ajouter'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (tables.isEmpty)
+                  Text(
+                    'Aucune table pour ce sous-restaurant.',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.outline,
+                    ),
+                  )
+                else
+                  ...tables.map((table) {
+                    final tableId = (table['id'] ?? '').toString();
+                    final numero = (table['numero'] ?? '').toString();
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      visualDensity: const VisualDensity(vertical: -3),
+                      leading: const Icon(Icons.table_restaurant, size: 20),
+                      title: Text('Table $numero'),
+                      trailing: Wrap(
+                        spacing: 2,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 20),
+                            onPressed: () async {
+                              final newNumero = await _showTableNumberDialog(
+                                context,
+                                title: 'Modifier la table',
+                                initialValue: numero,
+                              );
+                              if (newNumero == null || newNumero.isEmpty) return;
+                              if (authProvider.token == null) return;
+                              final success = await menuProvider.updateTable(
+                                sousRestaurantId: sr.id,
+                                tableId: tableId,
+                                numero: newNumero,
+                                token: authProvider.token!,
+                              );
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(this.context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    success
+                                        ? 'Table modifiee'
+                                        : (menuProvider.errorMessage ?? 'Erreur'),
+                                  ),
+                                  backgroundColor: success ? Colors.green : Colors.red,
+                                ),
+                              );
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, size: 20),
+                            color: colorScheme.error,
+                            onPressed: () => _showDeleteConfirmDialog(
+                              context,
+                              'Supprimer la table $numero ?',
+                              () async {
+                                if (authProvider.token == null) return;
+                                final success = await menuProvider.deleteTable(
+                                  sousRestaurantId: sr.id,
+                                  tableId: tableId,
+                                  token: authProvider.token!,
+                                );
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(this.context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      success
+                                          ? 'Table supprimee'
+                                          : (menuProvider.errorMessage ?? 'Erreur'),
+                                    ),
+                                    backgroundColor:
+                                        success ? Colors.green : Colors.red,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     );
-                  }
-                },
+                  }),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showManageTablesDialog(
+    BuildContext context,
+    SousRestaurant sr,
+    AuthProvider authProvider,
+    MenuManagementProvider menuProvider,
+  ) {
+    List<dynamic> tables = List<dynamic>.from(sr.tables ?? const []);
+
+    Future<void> refreshTables(StateSetter setModalState) async {
+      if (authProvider.token == null) return;
+      await menuProvider.loadSousRestaurants(authProvider.token!);
+      final updatedSr = menuProvider.sousRestaurants.where((s) => s.id == sr.id);
+      if (updatedSr.isNotEmpty) {
+        setModalState(() {
+          tables = List<dynamic>.from(updatedSr.first.tables ?? const []);
+        });
+      }
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return AlertDialog(
+            title: Text('Tables - ${sr.nom}'),
+            content: SizedBox(
+              width: 480,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final numero = await _showTableNumberDialog(
+                          context,
+                          title: 'Ajouter une table',
+                        );
+                        if (numero == null || numero.isEmpty) return;
+                        if (authProvider.token == null) return;
+
+                        final success = await menuProvider.createTable(
+                          sousRestaurantId: sr.id,
+                          numero: numero,
+                          token: authProvider.token!,
+                        );
+                        if (success) {
+                          await refreshTables(setModalState);
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Table ajoutee'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        } else {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                            SnackBar(
+                              content: Text(menuProvider.errorMessage ?? 'Erreur'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Ajouter'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (tables.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Text('Aucune table'),
+                    )
+                  else
+                    Flexible(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: tables.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final table = tables[index];
+                          final tableId = (table['id'] ?? '').toString();
+                          final numero = (table['numero'] ?? '').toString();
+                          return ListTile(
+                            leading: const Icon(Icons.table_restaurant),
+                            title: Text('Table $numero'),
+                            subtitle: tableId.isNotEmpty ? Text('ID: $tableId') : null,
+                            trailing: Wrap(
+                              spacing: 0,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit),
+                                  tooltip: 'Modifier',
+                                  onPressed: tableId.isEmpty
+                                      ? null
+                                      : () async {
+                                          final newNumero = await _showTableNumberDialog(
+                                            context,
+                                            title: 'Modifier la table',
+                                            initialValue: numero,
+                                          );
+                                          if (newNumero == null || newNumero.isEmpty) return;
+                                          if (authProvider.token == null) return;
+
+                                          final success = await menuProvider.updateTable(
+                                            sousRestaurantId: sr.id,
+                                            tableId: tableId,
+                                            numero: newNumero,
+                                            token: authProvider.token!,
+                                          );
+                                          if (success) {
+                                            await refreshTables(setModalState);
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(this.context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Table modifiee'),
+                                                backgroundColor: Colors.green,
+                                              ),
+                                            );
+                                          } else {
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(this.context).showSnackBar(
+                                              SnackBar(
+                                                content: Text(menuProvider.errorMessage ?? 'Erreur'),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
+                                        },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete),
+                                  color: Colors.red,
+                                  tooltip: 'Supprimer',
+                                  onPressed: tableId.isEmpty
+                                      ? null
+                                      : () => _showDeleteConfirmDialog(
+                                            context,
+                                            'Supprimer la table $numero ?',
+                                            () async {
+                                              if (authProvider.token == null) return;
+                                              final success = await menuProvider.deleteTable(
+                                                sousRestaurantId: sr.id,
+                                                tableId: tableId,
+                                                token: authProvider.token!,
+                                              );
+                                              if (success) {
+                                                await refreshTables(setModalState);
+                                                if (!mounted) return;
+                                                ScaffoldMessenger.of(this.context).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text('Table supprimee'),
+                                                    backgroundColor: Colors.green,
+                                                  ),
+                                                );
+                                              } else {
+                                                if (!mounted) return;
+                                                ScaffoldMessenger.of(this.context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(menuProvider.errorMessage ?? 'Erreur'),
+                                                    backgroundColor: Colors.red,
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                          ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
               ),
             ),
-          ],
-        ),
-        onTap: () {
-          menuProvider.selectSousRestaurant(sr.id);
-          Future.microtask(() {
-            if (authProvider.token != null) {
-              menuProvider.loadCategories(sr.id, authProvider.token!);
-            }
-          });
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Fermer'),
+              ),
+            ],
+          );
         },
+      ),
+    );
+  }
+
+  Future<String?> _showTableNumberDialog(
+    BuildContext context, {
+    required String title,
+    String initialValue = '',
+  }) async {
+    final controller = TextEditingController(text: initialValue);
+
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Numero de table',
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Valider'),
+          ),
+        ],
       ),
     );
   }
@@ -1450,16 +1818,17 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                   token: authProvider.token!,
                 );
 
+                if (!mounted) return;
                 if (success) {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  ScaffoldMessenger.of(this.context).showSnackBar(
                     const SnackBar(
                       content: Text('Catégorie créée'),
                       backgroundColor: Colors.green,
                     ),
                   );
                 } else {
-                  ScaffoldMessenger.of(ctx).showSnackBar(
+                  ScaffoldMessenger.of(this.context).showSnackBar(
                     SnackBar(
                       content: Text(menuProvider.errorMessage ?? 'Erreur'),
                       backgroundColor: Colors.red,
@@ -1561,16 +1930,17 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                   token: authProvider.token!,
                 );
 
+                if (!mounted) return;
                 if (success) {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  ScaffoldMessenger.of(this.context).showSnackBar(
                     const SnackBar(
                       content: Text('Catégorie modifiée'),
                       backgroundColor: Colors.green,
                     ),
                   );
                 } else {
-                  ScaffoldMessenger.of(ctx).showSnackBar(
+                  ScaffoldMessenger.of(this.context).showSnackBar(
                     SnackBar(
                       content: Text(menuProvider.errorMessage ?? 'Erreur'),
                       backgroundColor: Colors.red,
@@ -1732,6 +2102,9 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                           onPressed: () async {
                             final base64 = await ImageHandler.pickImageAsBase64(
                               source: ImageSource.gallery,
+                              maxWidthDp: 1280,
+                              maxHeightDp: 1280,
+                              imageQuality: 75,
                             );
                             if (base64 != null) {
                               setState(() {
@@ -1751,6 +2124,9 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                           onPressed: () async {
                             final base64 = await ImageHandler.pickImageAsBase64(
                               source: ImageSource.camera,
+                              maxWidthDp: 1280,
+                              maxHeightDp: 1280,
+                              imageQuality: 75,
                             );
                             if (base64 != null) {
                               setState(() {
@@ -2149,6 +2525,9 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                                   final base64 =
                                       await ImageHandler.pickImageAsBase64(
                                         source: ImageSource.gallery,
+                                        maxWidthDp: 1280,
+                                        maxHeightDp: 1280,
+                                        imageQuality: 75,
                                       );
                                   if (base64 != null &&
                                       (newImages.length +
@@ -2177,6 +2556,9 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                                   final base64 =
                                       await ImageHandler.pickImageAsBase64(
                                         source: ImageSource.camera,
+                                        maxWidthDp: 1280,
+                                        maxHeightDp: 1280,
+                                        imageQuality: 75,
                                       );
                                   if (base64 != null &&
                                       (newImages.length +

@@ -43,6 +43,31 @@ class MenuManagementProvider extends ChangeNotifier {
       ? _platsByCategorie[_selectedCategorieId] ?? []
       : [];
 
+  Future<void> _reloadSousRestaurantsPreservingSelection(
+    String token, {
+    String? preferredSousRestaurantId,
+  }) async {
+    final previousSelectedId = preferredSousRestaurantId ?? _selectedSousRestaurantId;
+    _sousRestaurants = await ApiService.getSousRestaurants(token);
+
+    if (_sousRestaurants.isEmpty) {
+      _selectedSousRestaurantId = null;
+      _selectedCategorieId = null;
+      _categoriesBySousRestaurant = {};
+      _platsByCategorie = {};
+      return;
+    }
+
+    final hasPrevious = previousSelectedId != null &&
+        _sousRestaurants.any((sr) => sr.id == previousSelectedId);
+    _selectedSousRestaurantId = hasPrevious
+        ? previousSelectedId
+        : _sousRestaurants.first.id;
+    _selectedCategorieId = null;
+
+    await loadCategories(_selectedSousRestaurantId!, token);
+  }
+
   // Load all sous-restaurants
   Future<void> loadSousRestaurants(String token) async {
     _isLoading = true;
@@ -50,11 +75,7 @@ class MenuManagementProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _sousRestaurants = await ApiService.getSousRestaurants(token);
-      if (_sousRestaurants.isNotEmpty) {
-        _selectedSousRestaurantId = _sousRestaurants.first.id;
-        await loadCategories(_sousRestaurants.first.id, token);
-      }
+      await _reloadSousRestaurantsPreservingSelection(token);
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -161,6 +182,86 @@ class MenuManagementProvider extends ChangeNotifier {
       if (_selectedSousRestaurantId == sousRestaurantId && _sousRestaurants.isNotEmpty) {
         _selectedSousRestaurantId = _sousRestaurants.first.id;
       }
+      _errorMessage = null;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Create a table in a sous-restaurant
+  Future<bool> createTable({
+    required String sousRestaurantId,
+    required String numero,
+    required String token,
+  }) async {
+    try {
+      await ApiService.createTable(
+        sousRestaurantId: sousRestaurantId,
+        numero: numero,
+        token: token,
+      );
+      await _reloadSousRestaurantsPreservingSelection(
+        token,
+        preferredSousRestaurantId: sousRestaurantId,
+      );
+      _errorMessage = null;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Update a table
+  Future<bool> updateTable({
+    required String sousRestaurantId,
+    required String tableId,
+    required String numero,
+    required String token,
+  }) async {
+    try {
+      await ApiService.updateTable(
+        sousRestaurantId: sousRestaurantId,
+        tableId: tableId,
+        numero: numero,
+        token: token,
+      );
+      await _reloadSousRestaurantsPreservingSelection(
+        token,
+        preferredSousRestaurantId: sousRestaurantId,
+      );
+      _errorMessage = null;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Delete a table
+  Future<bool> deleteTable({
+    required String sousRestaurantId,
+    required String tableId,
+    required String token,
+  }) async {
+    try {
+      await ApiService.deleteTable(
+        sousRestaurantId: sousRestaurantId,
+        tableId: tableId,
+        token: token,
+      );
+      await _reloadSousRestaurantsPreservingSelection(
+        token,
+        preferredSousRestaurantId: sousRestaurantId,
+      );
       _errorMessage = null;
       notifyListeners();
       return true;

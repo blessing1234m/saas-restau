@@ -170,6 +170,19 @@ export class AdminEtablissementController {
     );
   }
 
+  @Patch('sous-restaurants/:sousRestaurantId/tables/:tableId/regenerer-token')
+  async regenererTokenTable(
+    @UtilisateurActuel() user,
+    @Param('sousRestaurantId') sousRestaurantId: string,
+    @Param('tableId') tableId: string,
+  ) {
+    return this.adminService.regenererTokenTable(
+      user.utilisateurId,
+      sousRestaurantId,
+      tableId,
+    );
+  }
+
   // CATÉGORIES 
 
   @Post('sous-restaurants/:sousRestaurantId/categories')
