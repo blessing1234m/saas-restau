@@ -527,11 +527,20 @@ export class ServeurService {
               object-fit: cover;
               display: block;
             }
+            body.detail-open .hero-banner {
+              display: none;
+            }
+            body.detail-open .hero-logo {
+              display: none;
+            }
             .hero-body {
               position: relative;
               padding: 58px 18px 18px;
               text-align: center;
               background: #fff;
+            }
+            body.detail-open .hero-body {
+              padding-top: 18px;
             }
             .hero-logo {
               width: 88px;
@@ -1174,6 +1183,7 @@ export class ServeurService {
                   categoriesView.hidden = true;
                   platsView.hidden = false;
                   platDetailView.hidden = true;
+                  document.body.classList.remove('detail-open');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 });
               });
@@ -1196,6 +1206,7 @@ export class ServeurService {
                   categoriesView.hidden = true;
                   platsView.hidden = true;
                   platDetailView.hidden = false;
+                  document.body.classList.add('detail-open');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 });
               });
@@ -1239,6 +1250,7 @@ export class ServeurService {
                 categoriesView.hidden = false;
                 selectedTitle.textContent = '';
                 selectedPlatTitle.textContent = '';
+                document.body.classList.remove('detail-open');
               });
 
               backToPlatsBtn.addEventListener('click', function() {
@@ -1247,6 +1259,7 @@ export class ServeurService {
                 platsView.hidden = false;
                 categoriesView.hidden = true;
                 selectedPlatTitle.textContent = '';
+                document.body.classList.remove('detail-open');
               });
 
               refreshCartUI();
